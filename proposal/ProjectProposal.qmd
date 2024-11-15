@@ -11,7 +11,7 @@ editor: visual
 
 # Research Question and Importance
 
-How do variations in climate data (temperature, precipitation, and extreme weather events) affect cropland health and productivity over time, and can predictive models help identify future trends and risks?
+Our research question is: how do variations in climate data (temperature, precipitation, and extreme weather events) affect cropland health and productivity over time, and can predictive models help identify future trends and risks? It is important to look at how climate change is impacting the crops in the US because that is how many people are fed, so changes to the crops can really impact the amount of food available and also the economy. 
 
 # Already Existing Work
 
@@ -25,12 +25,11 @@ The goal of our project is to determine how climate change impacts cropland in t
 
 # Program Paradigms
 
-We will use the following program paradigms: Functional programming (R), Object oriented programming (Python for accessing data through API), explore parallel programming to deal with size of data set.
+We will use the following program paradigms: Functional programming (R), Object oriented programming (Python for accessing data through API), explore parallel programming to deal with size of data set. We need to use python to retrieve the data because Earth Engine requires some use of python to get the data, and then we will do some data cleaning in r because it works very well with data wrangling. We will then explore parallel computing because some of our data is very large so it may be useful to take advantage of parallel computing.
 
 # Packages and Software
 
-For the packages we can use the program R, use Python to get data from the earth engine, rgee (to work with API data through R).
-We then will use the following packages to process the crop land data QGIS/ARCGis and Geopandas. 
+For the packages we can use the program R, use Python to get data from the earth engine, rgee (to work with API data through R). We then will use the following packages to process the crop land data QGIS/ARCGis and Geopandas.
 
 # Data Collection
 
@@ -40,8 +39,7 @@ Data collection for this project will involve three primary data sources which w
 
 **Vegetation data:** We will use MODIS data also retrieved with an API call from Earth Engine which has no restrictions on use ([source](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13A1)). In this data we will use the Normalized Difference Vegetation Index, Enhanced Vegetation Index and Terra MODIS Vegetation Continuous Fields as metrics to understand how well the vegetation is doing in different areas.
 
-**Climate data:** We will use the PRISM Daily Spatial Climate Dataset from Earth Engine which has no restrictions on use
-([source](https://developers.google.com/earth-engine/datasets/catalog/OREGONSTATE_PRISM_AN81d)). This data includes data on temperature and precipitation for different areas in the US.
+**Climate data:** We will use the PRISM Daily Spatial Climate Dataset from Earth Engine which has no restrictions on use ([source](https://developers.google.com/earth-engine/datasets/catalog/OREGONSTATE_PRISM_AN81d)). This data includes data on temperature and precipitation for different areas in the US.
 
 # Product
 
@@ -51,17 +49,10 @@ Our final product will be a deployed Quarto website that walks through the resea
 
 The tentative project timeline is as follows:
 
-Week 1 (11/18): Meeting with Wenxuan to assess feasibility of project and make adjustments to project goals as needed. Data extraction and processing. 
-eek 2 (11/25): Data cleaning and data analysis. Start of website deployment 
-Week 3 (12/2): Continuation of data analysis. Implementation of data visualizations. Continuation of website development. 
-Week 4 (12/9): Finalization of data analysis. Finalization and submission of project presentation. Group presentation to course. Changes to analysis following presentation feedback. 
-Week 5 (12/16): Final project report finalization and submission. Group evaluation submission.
+Week 1 (11/18): Meeting with Wenxuan to assess feasibility of project and make adjustments to project goals as needed. Data extraction and processing. eek 2 (11/25): Data cleaning and data analysis. Start of website deployment Week 3 (12/2): Continuation of data analysis. Implementation of data visualizations. Continuation of website development. Week 4 (12/9): Finalization of data analysis. Finalization and submission of project presentation. Group presentation to course. Changes to analysis following presentation feedback. Week 5 (12/16): Final project report finalization and submission. Group evaluation submission.
 
 # Task Split
 
-We will split up the work in the following manner with everyone collaborating on problems that arise. 
+We will split up the work in the following manner with everyone collaborating on problems that arise.
 
-Meucci: Data extraction and processing, final presentation and report contributions, review of website and quality of analysis. 
-Sara: Data analysis & visualization, final presentation and report contributions, review of website and quality of analysis. 
-Fernanda: Data analysis & visualization, final presentation and report contributions, review of website and quality of analysis.
-Meklit: Website creation, final presentation and report contributions, review of website and quality of analysis.
+Meucci: Data extraction and processing, final presentation and report contributions, review of website and quality of analysis. Sara: Data analysis & visualization, final presentation and report contributions, review of website and quality of analysis. Fernanda: Data analysis & visualization, final presentation and report contributions, review of website and quality of analysis. Meklit: Website creation, final presentation and report contributions, review of website and quality of analysis.

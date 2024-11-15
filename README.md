@@ -1,5 +1,5 @@
 ### 140.777.P4
-### Our Changing Climate: A Geospatial Analysis of the Impact of Climate Change on Cropland Health and Productivity
+### Our Changing Climate: A Geospatial Analysis of the Impact of Climate Change on Regional Cropland Health and Productivity
 #### November 15, 2024
 
 **Team Members:** Sara Hunsberger, Fernanda Montoya, Meklit Yimenu, Meucci Ilunga

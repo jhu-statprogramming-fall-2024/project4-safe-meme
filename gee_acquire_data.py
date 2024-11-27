@@ -81,7 +81,8 @@ print(f"CRS: {daymet_weekly.first().projection().crs().getInfo()}")
 
 # Print the list of dates
 weekly_dates_list = daymet_weekly.toList(daymet_weekly.size()).map(get_date)
-print('Weekly Dates:', weekly_dates_list.getInfo())
+print('Weekly Dates:', weekly_dates_list.getInfo()[:3])
+print()
 
 def weekly_interpolation(img_collection, start_date, end_date):
   """Interpolates an ImageCollection to weekly averages."""
@@ -223,6 +224,7 @@ gfsad = reclassify_gfsad_landcover(ee.Image('USGS/GFSAD1000_V1'))
 print(gfsad.bandNames().getInfo())
 print(f"Spatial resolution of the GFSAD image: {gfsad.projection().nominalScale().getInfo()} meters")
 print(f"CRS of GFSAD: {gfsad.projection().crs().getInfo()}")
+print()
 
 ### CONSOLIDATE DATASETS
 datasets = [daymet_weekly, weekly_EVI, weekly_ET, weekly_FPAR]
@@ -245,3 +247,85 @@ merged_dataset = merged_dataset.filter(ee.Filter.neq('system:index', '70')).map(
 
 print(merged_dataset.size().getInfo())
 print(merged_dataset.first().bandNames().getInfo())
+print()
+
+# Ensure all images across all bands have consistent, common projection
+# Since focusing on CONUS, use EPSG:3347 as default
+target_projection_crs = ee.Projection('EPSG:3347') 
+target_scale = 1000  # meters
+
+def reproject_image(image):
+    return image.reproject(crs=target_projection_crs, scale=target_scale)
+
+merged_dataset = merged_dataset.map(reproject_image)
+
+print(f"Spatial resolution of merged data image: {merged_dataset.first().projection().nominalScale().getInfo()} meters")
+print(f"CRS: {merged_dataset.first().projection().crs().getInfo()}")
+print()
+
+##############################
+##############################
+##############################
+# Export data to google drive
+# testing with first 10 images
+import time
+ee.Authenticate()
+ee.Initialize()
+
+# Load the US states FeatureCollection
+states = ee.FeatureCollection("TIGER/2018/States")
+
+# Filter for Illinois
+roi = states.filter(ee.Filter.eq('NAME', 'Illinois'))
+
+# Apply preprocessing to the ImageCollection
+def process_and_export(image):
+    
+    # Preprocess the image (clip to ROI, resample, and convert bands)
+    clipped_image = image.clip(roi).toFloat().resample('bilinear')
+    
+    # Get the date from the image 
+    date = ee.Date(image.get('system:time_start'))
+    date_string = date.format('YYYY-MM-dd').getInfo()
+
+    # Calculate the week number
+    start_date = ee.Date('2000-02-18') 
+    week_number = date.difference(start_date, 'week').add(1).getInfo()
+
+    # Pad the week number with zeros to ensure it has four digits
+    week_string = str(week_number).zfill(4)
+
+    # Create an export task for each image
+    task = ee.batch.Export.image.toDrive(
+        image=clipped_image,
+        description=f'california_{date_string}',
+        folder='EarthEngineExports',
+        fileNamePrefix=f'illinois_1kmx1km_{week_string}_{date_string}',
+        crs='EPSG:3347',
+        scale=1000,
+        region=roi.geometry().bounds(),
+        maxPixels=1e13,
+        fileFormat='GeoTIFF'
+    )
+    
+    task.start()
+    print(f"Started export task for {date_string}. Task ID: {task.id}")
+
+    return(task)
+
+# Iterate over all images in the ImageCollection
+tasks = []
+full_list = merged_dataset.toList(merged_dataset.size())
+#for i in range(merged_dataset.size().getInfo()):
+#for i in range(100):
+for i in range(merged_dataset.size().getInfo()):
+    image = ee.Image(full_list.get(i))
+
+    task = process_and_export(image)
+    tasks.append((i, task))
+
+    print(task.status())
+    index = str(i + 1).zfill(4)
+    print(index)
+    print()
+

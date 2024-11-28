@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+EarthEngineExports/
+data/transformed_data/

@@ -1,0 +1,56 @@
+---
+title: "project 4 rough draft"
+author: "Fernanda Montoya"
+date: "2024-12-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+odd_dataset <- read.csv("/Users/fernandamontoya/Downloads/odd_combined_dataset.csv")
+
+modified_dataset <- read.csv("/Users/fernandamontoya/Downloads/modified_dataset.csv")
+
+even_dataset <- read.csv("/Users/fernandamontoya/Downloads/even_combined_dataset.csv")
+
+combined_dataset <- read.csv("/Users/fernandamontoya/Downloads/combined_dataset.csv")
+```
+
+```{r, fig.width=18}
+library(forecast)
+library(fpp3)
+library(tsibbledata)
+library(tsibble)
+library(fable)
+
+modified_ts <- tsibble(
+  date = as.Date(combined_dataset$date),
+  NDVI = combined_dataset$NDVI,
+  swe = combined_dataset$swe,
+  EVI = combined_dataset$EVI,
+  LAI = combined_dataset$LAI,
+  prcp = combined_dataset$prcp,
+  PET = combined_dataset$PET,
+  tmax = combined_dataset$tmax,
+  tmin = combined_dataset$tmin,
+  vp = combined_dataset$vp,
+  FPAR = combined_dataset$FPAR,
+  ET = combined_dataset$ET,
+  PLE = combined_dataset$PLE,
+  dayl = combined_dataset$dayl,
+)
+
+train <- modified_ts %>% filter_index(~ "2019-12-27")
+test <- modified_ts %>% filter_index("2020-01-03" ~.)
+
+fit_one <- train %>% model(TSLM(NDVI ~ swe + prcp + PET + tmax + tmin + vp + FPAR + ET + PLE + dayl))
+
+forecast_test <- forecast(fit_one, new_data = test)
+forecast_test %>% autoplot(modified_ts)
+
+```
+

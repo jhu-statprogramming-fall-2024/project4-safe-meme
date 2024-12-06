@@ -4,7 +4,7 @@
     "href": "dataCollection.html",
     "title": "Data Collection",
     "section": "",
-    "text": "This page describes the data used in the analysis, including a description of the original sources of the data and a data dictionary for the data used.\n## Data Source and Processing Summary\nGeneral Metadata Summary\nBand Explanation"
+    "text": "This page describes the data used in the analysis, including a description of the original sources of the data and a data dictionary for the data used."
   },
   {
     "objectID": "exploratoryAnalysis.html",
@@ -124,5 +124,19 @@
     "title": "Final Model",
     "section": "",
     "text": "We decide to run a time series multiple linear regression model to predict the NDVI of cropland in Illinois over time using the climate variables. To do this we use the library fable that allows us to run the model from a tsibble (a tibble with a time series component). We train the model on the data from 2000 to 2020 and then use the model to predict NDVI for the years 2021 to 2024. We then create the following plot to compare the actual data to the predicted confidence intervals.\n\n\n\n\n\n\n\n\n\nThis plot shows the true NDVI value from 2000 to 2024 and the confidence interval for our prediction from 2020 to 2024 in purple.\n\n\n\n\n\n\n\n\n\nThis plot shows our prediction of NDVI from 2020 to 2024 and a confidence interval around the prediction."
+  },
+  {
+    "objectID": "dataCollection.html#general-metadata-summary",
+    "href": "dataCollection.html#general-metadata-summary",
+    "title": "Data Collection",
+    "section": "General Metadata Summary",
+    "text": "General Metadata Summary\n\nGeographic Coverage: Illinois, USA\nCoordinate System: EPSG:3347 (Canada Lambert Conformal Conic)\nSpatial Resolution: 1 km x 1 km\nTemporal Coverage: February 18th, 2000 to December 31st, 2023\nTemporal Resolution: Weekly\nData Sources:\n\nDaymet v4 (daily meteorology, averaged to weekly)\nMODIS (vegetation indices, ET, FPAR, LAI; composites downscaled spatially, upscaled temporally)\nGFSAD (2011 land cover, reclassified)\n\nRendered GeoTIFF Dimensions:\n\nWidth: 431 pixels\nHeight: 660 pixels\nBands: 16"
+  },
+  {
+    "objectID": "dataCollection.html#band-explanation",
+    "href": "dataCollection.html#band-explanation",
+    "title": "Data Collection",
+    "section": "Band Explanation",
+    "text": "Band Explanation\n\n\n\n\n\n\n\n\n\n\nBand Name\nDescription\nUnits\nData Type\nNoData Value\n\n\n\n\ncrop\nLand cover type (1: non-cropland, 2: irrigated cropland, 3: rainfed cropland)\nCategory\nfloat32\nNone\n\n\ndayl\nDaylength\nseconds\nfloat32\nNone\n\n\nprcp\nPrecipitation\nmm/day\nfloat32\nNone\n\n\nsrad\nDownward shortwave radiation at the surface\nW/m^2\nfloat32\nNone\n\n\nswe\nSnow water equivalent\nkg/m^2\nfloat32\nNone\n\n\ntmax\nDaily maximum 2-meter air temperature\ndegrees C\nfloat32\nNone\n\n\ntmin\nDaily minimum 2-meter air temperature\ndegrees C\nfloat32\nNone\n\n\nvp\nWater vapor pressure\nPa\nfloat32\nNone\n\n\nEVI\nEnhanced Vegetation Index\nunitless\nfloat32\nNone\n\n\nNDVI\nNormalized Difference Vegetation Index\nunitless\nfloat32\nNone\n\n\nET\nEvapotranspiration\nmm/day\nfloat32\nNone\n\n\nLE\nLatent heat flux\nW/m^2\nfloat32\nNone\n\n\nPET\nPotential evapotranspiration\nmm/day\nfloat32\nNone\n\n\nPLE\nPotential latent heat flux\nW/m^2\nfloat32\nNone\n\n\nFPAR\nFraction of Photosynthetically Active Radiation\nunitless\nfloat32\nNone\n\n\nLAI\nLeaf Area Index\nm2/m2\nfloat32\nNone"
   }
 ]

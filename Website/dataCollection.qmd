@@ -4,8 +4,10 @@ title: "Data Collection"
 
 This page describes the data used in the analysis, including a description of the original sources of the data and a data dictionary for the data used. 
 
-![This map shows the NDVI values for each area in Illinois on the date 2000-07-07 as an example of a visualization of one of the variables in our dataset.](NDVI_2000.png)
-## **Data Source and Processing Summary**
+![This map shows the NDVI values for each area in Illinois on the date 2000-07-07 as an example of a visualization of one of the variables in our dataset.](NDVI_2000.png){width="50%"}
+
+
+## Data Source and Processing Summary
 
 -   **Data Acquisition:** All data was obtained from Google Earth Engine using their Python API.
 -   **Spatial Extent:** The dataset covers the entire state of Illinois, with the boundary defined by the 'TIGER/2018/States' census dataset.
@@ -16,7 +18,7 @@ This page describes the data used in the analysis, including a description of th
 
 <br> <br>
 
-**General Metadata Summary**
+## General Metadata Summary
 
 -   **Geographic Coverage:** Illinois, USA
 -   **Coordinate System:** EPSG:3347 (Canada Lambert Conformal Conic)
@@ -34,7 +36,8 @@ This page describes the data used in the analysis, including a description of th
 
 <br> <br>
 
-**Band Explanation**
+
+## Band Explanation
 
 | Band Name | Description                                                                   | Units     | Data Type | NoData Value |
 |---------|------------------------------------|---------|---------|---------|
@@ -57,7 +60,7 @@ This page describes the data used in the analysis, including a description of th
 
 <br> <br>
 
-## **Types of Vegetation Metrics**
+## Types of Vegetation Metrics
 
 -   **Evapotranspiration (ET):** Measures the total water loss from soil and plants; higher ET indicates active plant growth and sufficient water availability. Over 25 years, an overall decrease in ET due to climate change could indicate reduced plant activity or increased water stress.
 

@@ -120,7 +120,10 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#types-of-vegetation-metrics" id="toc-types-of-vegetation-metrics" class="nav-link active" data-scroll-target="#types-of-vegetation-metrics"><strong>Types of Vegetation Metrics</strong></a></li>
+  <li><a href="#data-source-and-processing-summary" id="toc-data-source-and-processing-summary" class="nav-link active" data-scroll-target="#data-source-and-processing-summary">Data Source and Processing Summary</a></li>
+  <li><a href="#general-metadata-summary" id="toc-general-metadata-summary" class="nav-link" data-scroll-target="#general-metadata-summary">General Metadata Summary</a></li>
+  <li><a href="#band-explanation" id="toc-band-explanation" class="nav-link" data-scroll-target="#band-explanation">Band Explanation</a></li>
+  <li><a href="#types-of-vegetation-metrics" id="toc-types-of-vegetation-metrics" class="nav-link" data-scroll-target="#types-of-vegetation-metrics">Types of Vegetation Metrics</a></li>
   </ul>
 </nav>
     </div>
@@ -147,7 +150,14 @@ ul.task-list li input[type="checkbox"] {
 
 
 <p>This page describes the data used in the analysis, including a description of the original sources of the data and a data dictionary for the data used.</p>
-<p><img src="NDVI_2000.png" class="img-fluid" alt="This map shows the NDVI values for each area in Illinois on the date 2000-07-07 as an example of a visualization of one of the variables in our dataset."> ## <strong>Data Source and Processing Summary</strong></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="NDVI_2000.png" class="img-fluid figure-img" style="width:50.0%"></p>
+<figcaption>This map shows the NDVI values for each area in Illinois on the date 2000-07-07 as an example of a visualization of one of the variables in our dataset.</figcaption>
+</figure>
+</div>
+<section id="data-source-and-processing-summary" class="level2">
+<h2 class="anchored" data-anchor-id="data-source-and-processing-summary">Data Source and Processing Summary</h2>
 <ul>
 <li><strong>Data Acquisition:</strong> All data was obtained from Google Earth Engine using their Python API.</li>
 <li><strong>Spatial Extent:</strong> The dataset covers the entire state of Illinois, with the boundary defined by the ‘TIGER/2018/States’ census dataset.</li>
@@ -157,7 +167,9 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Land Cover Data:</strong> Land cover data is from the 2011 NASA GFSAD product. It was reclassified into three categories: non-cropland, irrigated cropland, and rainfed cropland.</li>
 </ul>
 <p><br> <br></p>
-<p><strong>General Metadata Summary</strong></p>
+</section>
+<section id="general-metadata-summary" class="level2">
+<h2 class="anchored" data-anchor-id="general-metadata-summary">General Metadata Summary</h2>
 <ul>
 <li><strong>Geographic Coverage:</strong> Illinois, USA</li>
 <li><strong>Coordinate System:</strong> EPSG:3347 (Canada Lambert Conformal Conic)</li>
@@ -178,7 +190,9 @@ ul.task-list li input[type="checkbox"] {
 </ul></li>
 </ul>
 <p><br> <br></p>
-<p><strong>Band Explanation</strong></p>
+</section>
+<section id="band-explanation" class="level2">
+<h2 class="anchored" data-anchor-id="band-explanation">Band Explanation</h2>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 12%">
@@ -312,8 +326,9 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 <p><br> <br></p>
+</section>
 <section id="types-of-vegetation-metrics" class="level2">
-<h2 class="anchored" data-anchor-id="types-of-vegetation-metrics"><strong>Types of Vegetation Metrics</strong></h2>
+<h2 class="anchored" data-anchor-id="types-of-vegetation-metrics">Types of Vegetation Metrics</h2>
 <ul>
 <li><p><strong>Evapotranspiration (ET):</strong> Measures the total water loss from soil and plants; higher ET indicates active plant growth and sufficient water availability. Over 25 years, an overall decrease in ET due to climate change could indicate reduced plant activity or increased water stress.</p></li>
 <li><p><strong>Fraction of Photosynthetically Active Radiation (FPAR):</strong> Represents the fraction of sunlight absorbed by vegetation for photosynthesis; higher FPAR denotes healthier, more productive crops. Over 25 years, a declining FPAR trend could indicate an overall reduction in crop canopy density.</p></li>

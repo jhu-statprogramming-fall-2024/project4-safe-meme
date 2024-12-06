@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Final Model – ClimateCrops</title>
+<title>Final Model – Climate Crops</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -79,7 +79,7 @@ ul.task-list li input[type="checkbox"] {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">ClimateCrops</span>
+    <span class="navbar-title">Climate Crops</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -140,6 +140,27 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<p>We decide to run a time series multiple linear regression model to predict the NDVI of cropland in Illinois over time using the climate variables. To do this we use the library fable that allows us to run the model from a tsibble (a tibble with a time series component). We train the model on the data from 2000 to 2020 and then use the model to predict NDVI for the years 2021 to 2024. We then create the following plot to compare the actual data to the predicted confidence intervals.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="model_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="1728"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This plot shows the true NDVI value from 2000 to 2024 and the confidence interval for our prediction from 2020 to 2024 in purple.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="model_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This plot shows our prediction of NDVI from 2020 to 2024 and a confidence interval around the prediction.</p>
 
 
 

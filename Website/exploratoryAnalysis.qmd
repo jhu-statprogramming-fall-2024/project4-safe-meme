@@ -132,7 +132,7 @@ ggplot(combined_dataset, aes(x = EVI, y = NDVI)) +
          axis.line = element_line(color = "black"))
 ```
 
-
+Now now make pairwise scatter plots of climate and vegetation variables of interest. These scatter plots look like they show linear correlations between the vegetation variables (NDVI and EVI) and temperature. The relationship between precipitation and the vegetation variables is less clear. 
 ```{r}
 #| message: false
 #| warning: false
@@ -145,6 +145,8 @@ pairs(combined_dataset %>% select(NDVI, tmax, tmin, prcp, EVI),
 ## Feature Selection
 
 ##### Correlation
+
+We next made a correlation matrix between all of the climate and vegetation variables and select variables that are not highly correlated (have a correlation coefficient of less than 0.85). 
 
 ```{r}
 #| message: false
@@ -183,9 +185,9 @@ selected_features_corr <- setdiff(colnames(numeric_cols), high_corr)
 selected_features_corr
 ```
 
-Over half of the variables are removed
-
 ##### K-Means Clustering
+
+Fianlly we use  K-Means clustering to look at feature importance. We use K-means clustering to select important features that will be used in the final model phase of the analysis. 
 
 ```{r}
 # K-Means clustering to to look at feature importance
@@ -214,6 +216,8 @@ final_selected_features <- unique(c(final_selected_features, "NDVI"))
 cat("Selected Features for Predictive Modeling:\n")
 print(final_selected_features)
 ```
+
+The final selected climate features to be used in the next step of analysis are swe, prcp, tmax, tmin, vp and dayl. 
 
 ```{r}
 # modified dataset

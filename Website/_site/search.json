@@ -109,13 +109,20 @@
     "href": "exploratoryAnalysis.html#summary-plots",
     "title": "Exploratory Analysis",
     "section": "Summary plots",
-    "text": "Summary plots\nWe first explore the NDVI variable that tells us how well crops are doing and compare the health of crops over time, and across different variables.\nWe now plot the NDVI and EVI variables over time, we can see a cyclic pattern, which have one peak and valley each year, this makes sense because the seasons likely strongly affect NDVI and EVI, so we expect to see this cyclic pattern.\n\n\n\n\n\n\n\n\n\nWe next plot NDVI as a function of temperature, where it looks like we see linear correlation. This also is to be expected because crops tend to do better in the summer when the temperature is warmer.\n\n\n\n\n\n\n\n\n\nNext we plot NDVI as a function of precipitation. This plot is harder to see direct correlation between NDVI and precipitation but it gives us a sense of what the data look like.\n\n\n\n\n\n\n\n\n\nNow we plot the relationship between NDVI and EVI which seems to be correlated, which would be expected because they are different measurements for plant health."
+    "text": "Summary plots\nWe first explore the NDVI variable that tells us how well crops are doing and compare the health of crops over time, and across different variables.\nWe now plot the NDVI and EVI variables over time, we can see a cyclic pattern, which have one peak and valley each year, this makes sense because the seasons likely strongly affect NDVI and EVI, so we expect to see this cyclic pattern.\n\n\n\n\n\n\n\n\n\nWe next plot NDVI as a function of temperature, where it looks like we see linear correlation. This also is to be expected because crops tend to do better in the summer when the temperature is warmer.\n\n\n\n\n\n\n\n\n\nNext we plot NDVI as a function of precipitation. This plot is harder to see direct correlation between NDVI and precipitation but it gives us a sense of what the data look like.\n\n\n\n\n\n\n\n\n\nNow we plot the relationship between NDVI and EVI which seems to be correlated, which would be expected because they are different measurements for plant health.\n\n\n\n\n\n\n\n\n\nNow now make pairwise scatter plots of climate and vegetation variables of interest. These scatter plots look like they show linear correlations between the vegetation variables (NDVI and EVI) and temperature. The relationship between precipitation and the vegetation variables is less clear."
   },
   {
     "objectID": "exploratoryAnalysis.html#feature-selection",
     "href": "exploratoryAnalysis.html#feature-selection",
     "title": "Exploratory Analysis",
     "section": "Feature Selection",
-    "text": "Feature Selection\n\nCorrelation\n\n\n\n\n\n\n\n\n\nOver half of the variables are removed\n\n\nK-Means Clustering"
+    "text": "Feature Selection\n\nCorrelation\nWe next made a correlation matrix between all of the climate and vegetation variables and select variables that are not highly correlated (have a correlation coefficient of less than 0.85).\n\n\n\n\n\n\n\n\n\n\n\nK-Means Clustering\nFianlly we use K-Means clustering to look at feature importance. We use K-means clustering to select important features that will be used in the final model phase of the analysis.\n\n\n\n\n\n\n\n\n\nThe final selected climate features to be used in the next step of analysis are swe, prcp, tmax, tmin, vp and dayl."
+  },
+  {
+    "objectID": "model.html",
+    "href": "model.html",
+    "title": "Final Model",
+    "section": "",
+    "text": "We decide to run a time series multiple linear regression model to predict the NDVI of cropland in Illinois over time using the climate variables. To do this we use the library fable that allows us to run the model from a tsibble (a tibble with a time series component). We train the model on the data from 2000 to 2020 and then use the model to predict NDVI for the years 2021 to 2024. We then create the following plot to compare the actual data to the predicted confidence intervals.\n\n\n\n\n\n\n\n\n\nThis plot shows the true NDVI value from 2000 to 2024 and the confidence interval for our prediction from 2020 to 2024 in purple.\n\n\n\n\n\n\n\n\n\nThis plot shows our prediction of NDVI from 2020 to 2024 and a confidence interval around the prediction."
   }
 ]

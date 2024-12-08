@@ -47,7 +47,7 @@ combined_dataset$date <- as.Date(combined_dataset$date)
 ggplot(combined_dataset, aes(x = date)) +
   geom_line(aes(y = tmax, color = "Temperature (Max)"), size= 0.2) +
   geom_line(aes(y = tmin, color = "Temperature (Min)"),size= 0.2) +
-  labs(title = "Illinois Temperature Over Time", y = "Temperature(Celcius)") +
+  labs(title = "Figure 1: Illinois Temperature Over Time", y = "Temperature(Celcius)") +
   scale_color_brewer(palette = 'Accent') +
    theme(plot.title = element_text(hjust = 0.5, size = 13),
          panel.grid.major = element_blank(),
@@ -57,6 +57,9 @@ ggplot(combined_dataset, aes(x = date)) +
          legend.title = element_blank(),
          axis.line = element_line(color = "black"))
 ```
+
+As shown in *Figure 1*, the temperature in Illinois fluctuates seasonally in the same way between the years 2000 and 2023.
+
 We now plot the NDVI and EVI variables over time, we can see a cyclic pattern, which have one peak and valley each year, this makes sense because the seasons likely strongly affect NDVI and EVI, so we expect to see this cyclic pattern. 
 
 ```{r}
@@ -64,7 +67,7 @@ We now plot the NDVI and EVI variables over time, we can see a cyclic pattern, w
 ggplot(combined_dataset, aes(x = date)) +
   geom_line(aes(y = NDVI, color = "NDVI")) +
   geom_line(aes(y = EVI, color = "EVI")) +
-  labs(title = "Illinois Vegetation Indices Over Time", color = "Incides") +
+  labs(title = "Figure 2: Illinois Vegetation Indices Over Time", color = "Incides") +
   scale_color_brewer(palette = 'Accent') +
    theme(plot.title = element_text(hjust = 0.5, size = 13),
          panel.grid.major = element_blank(),
@@ -76,6 +79,9 @@ ggplot(combined_dataset, aes(x = date)) +
          axis.line = element_line(color = "black"))
 
 ```
+
+As shown in *Figure 2*, vegetation indices in Illinois also fluctuate seasonally in the same way between the years 2000 and 2023.
+
 We next plot NDVI as a function of temperature, where it looks like we see linear correlation. This also is to be expected because crops tend to do better in the summer when the temperature is warmer. 
 
 ```{r}
@@ -85,7 +91,7 @@ We next plot NDVI as a function of temperature, where it looks like we see linea
 ggplot(combined_dataset, aes(x = tmax, y = NDVI)) +
   geom_point(alpha = 0.5, color = "steelblue") +
   geom_smooth(method = "lm", color = "orchid4") +
-  labs(title = "NDVI as a function of Temperature",
+  labs(title = "Figure 3: NDVI as a function of Temperature",
        x = "Max Temperature (°C)", y = "NDVI") +
    theme(plot.title = element_text(hjust = 0.5, size = 13),
          panel.grid.major = element_blank(),
@@ -93,8 +99,10 @@ ggplot(combined_dataset, aes(x = tmax, y = NDVI)) +
          panel.background = element_blank(),
          legend.title = element_blank(),
          axis.line = element_line(color = "black"))
-
 ```
+
+*Figure 3* indicates a positive correlation between NDVI and maximum temperature.
+
 Next we plot NDVI as a function of precipitation. This plot is harder to see direct correlation between NDVI and precipitation but it gives us a sense of what the data look like.
 
 ```{r}
@@ -119,11 +127,12 @@ Now we plot the relationship between NDVI and EVI which seems to be correlated, 
 ```{r}
 #| message: false
 #| warning: false
-# relationships between NDVI and EVI
-ggplot(combined_dataset, aes(x = EVI, y = NDVI)) +
+# relationships between precipitation and NDVI
+ggplot(combined_dataset, aes(x = prcp, y = NDVI)) +
   geom_point(alpha = 0.5, color = "steelblue") +
-  geom_smooth(method = "lm", color = "orchid") +
-  labs(title = "Correlation between NDVI and EVI", x = "EVI", y = "NDVI") +
+  geom_smooth(method = "lm",  color = "orchid4", se=F) +
+  labs(title = "Figure 4: NDVI as a function of Precipitation",
+       x = "Precipitation (mm/day)", y = "NDVI") +
    theme(plot.title = element_text(hjust = 0.5, size = 13),
          panel.grid.major = element_blank(),
          panel.grid.minor = element_blank(),
@@ -132,15 +141,20 @@ ggplot(combined_dataset, aes(x = EVI, y = NDVI)) +
          axis.line = element_line(color = "black"))
 ```
 
+There is no clear correlation between NDVI and precipitation levels (*Figure 4*).
+
 Now now make pairwise scatter plots of climate and vegetation variables of interest. These scatter plots look like they show linear correlations between the vegetation variables (NDVI and EVI) and temperature. The relationship between precipitation and the vegetation variables is less clear. 
 ```{r}
 #| message: false
 #| warning: false
 #pairwise scatter plots of NDVI and climate/vegetation variables
 pairs(combined_dataset %>% select(NDVI, tmax, tmin, prcp, EVI), 
-      main = "Pairwise Scatter Plots of NDVI and Climate/Veg Variables", 
+      main = " Figure 5: Pairwise Scatter Plots of NDVI and Climate/Veg Variables", 
       pch = 19, col = "steelblue")
 ```
+
+As depicted by *Figure 6*, there is a clear correlation between temperature, EVI, and NDVI, while the relationship between these variables and precipitation is unclear.
+
 
 ## Feature Selection
 
@@ -164,6 +178,7 @@ corr_matrix[is.na(corr_matrix)] <- 0
 corrplot::corrplot(corr_matrix, method = "color", col = colorRampPalette(c("white", "steelblue"))(200))
 
 ```
+As shown above, most of the variables are highly correlated. This could pose a problem when developing a prediction model.
 
 ```{r}
 #| message: false
@@ -185,9 +200,11 @@ selected_features_corr <- setdiff(colnames(numeric_cols), high_corr)
 selected_features_corr
 ```
 
+The list above shows that if we were to have a 0.85 cutoff for correlation, over half of the variables would be excluded from our prediction model.
+
 ##### K-Means Clustering
 
-Fianlly we use  K-Means clustering to look at feature importance. We use K-means clustering to select important features that will be used in the final model phase of the analysis. 
+Finally we use  K-Means clustering to look at feature importance. We use K-means clustering to select important features that will be used in the final model phase of the analysis. 
 
 ```{r}
 # K-Means clustering to to look at feature importance

@@ -27,6 +27,10 @@ The project will primarily use three data sources: cropland data, vegetation dat
 
 Data acquisition will involve retrieving excerpts via API calls from Earth Engine combining them for analysis. Specifically, we will use the 'rgee' package in R or the equivalent for Python to interact with the Earth Engine API. This will allow us to access and download the necessary data for our analysis.
 
+**Website**
+The link to our website is here: https://sarahunsberger1.github.io/Project4_website/
+The link to the repository that deployed the website is here: https://github.com/sarahunsberger1/Project4_website
+
 **Tentative Timeline:**
 * **Week 1 (11/18):** Data extraction, processing, and exploratory analysis.
 * **Week 2 (11/25):** Data analysis and visualization.

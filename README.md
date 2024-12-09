@@ -6,6 +6,10 @@
 
 **Project Goal:** To analyze the impact of climate change on cropland health and productivity using publicly available geospatial datasets.
 
+**Website**
+The link to our website is here: https://sarahunsberger1.github.io/Project4_website/
+The link to the repository that deployed the website is here: https://github.com/sarahunsberger1/Project4_website
+
 **Project Description:**
 
 This repository contains the code and data for our Project 4 submission in JHU-BSPH 140.777. Our project focuses on investigating how variations in climate (temperature, precipitation, etc) over the last 25 years have impacted global and regional cropland health and productivity over time. We aim to develop a basic descriptive model to identify future trends and risks associated with climate change and cropland.
@@ -26,10 +30,6 @@ The project will primarily use three data sources: cropland data, vegetation dat
 *   **Climate Data:** We will use the PRISM Daily Spatial Climate Dataset from Earth Engine, which has no relevant restrictions on use. This dataset includes data on temperature and precipitation for different areas in the US.
 
 Data acquisition will involve retrieving excerpts via API calls from Earth Engine combining them for analysis. Specifically, we will use the 'rgee' package in R or the equivalent for Python to interact with the Earth Engine API. This will allow us to access and download the necessary data for our analysis.
-
-**Website**
-The link to our website is here: https://sarahunsberger1.github.io/Project4_website/
-The link to the repository that deployed the website is here: https://github.com/sarahunsberger1/Project4_website
 
 **Tentative Timeline:**
 * **Week 1 (11/18):** Data extraction, processing, and exploratory analysis.

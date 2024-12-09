@@ -1,0 +1,2408 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.30">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Data Preprocessing, EDA and Feature Selection</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Project4_phase2_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Project4_phase2_files/libs/quarto-html/quarto.js"></script>
+<script src="Project4_phase2_files/libs/quarto-html/popper.min.js"></script>
+<script src="Project4_phase2_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Project4_phase2_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Project4_phase2_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Project4_phase2_files/libs/quarto-html/quarto-syntax-highlighting-3a01e2046221230fdceeea94b1ec5d67.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Project4_phase2_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Project4_phase2_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Project4_phase2_files/libs/bootstrap/bootstrap-34745567add538a638dde46bc8a747e1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Data Preprocessing, EDA and Feature Selection</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="data-validation-and-preprocessing" class="level3">
+<h3 class="anchored" data-anchor-id="data-validation-and-preprocessing">Data Validation and Preprocessing</h3>
+<p>The code below is for even years from 2000 to 2023. The preprocessing and validation for odd years are handled in a separate Quarto file due to limited working memory.</p>
+<section id="load-datasets" class="level4">
+<h4 class="anchored" data-anchor-id="load-datasets">Load Datasets</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># even years from 2000 to 2023</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">2000</span>, <span class="dv">2023</span>, <span class="at">by =</span> <span class="dv">2</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># sub-directory where the files are stored</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="st">"Data/transformed_data"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># read the parquet file for each year </span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  file_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(data_dir, <span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year, <span class="st">".parquet"</span>))</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">#check if the file exists</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">file.exists</span>(file_path)) {</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assign</span>(<span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year), <span class="fu">read_parquet</span>(file_path)) <span class="co"># create a data frame name</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="fu">paste</span>(<span class="st">"File"</span>, file_path, <span class="st">"does not exist."</span>))</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="quality-check" class="level4">
+<h4 class="anchored" data-anchor-id="quality-check">Quality Check</h4>
+<p>The code below checks for data completeness (null values), duplicate rows, range validity, and consistency in units and data types.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># data quality checks </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>check_data_quality <span class="ot">&lt;-</span> <span class="cf">function</span>(df) {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check for NA</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  completeness <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(df)) </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Completeness Check: </span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Total missing values:"</span>, completeness, <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check for duplicates </span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  duplicates <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">duplicated</span>(df)) </span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Consistency Check: </span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Number of duplicate rows:"</span>, duplicates, <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check  data types </span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Data Types Check: </span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">str</span>(df), <span class="at">quote =</span> <span class="cn">FALSE</span>)  </span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check ranges for numeric columns</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># daylength (in seconds): (24 hours)</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Range Checks: </span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"dayl"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    dayl_invalid <span class="ot">&lt;-</span> <span class="fu">sum</span>(df<span class="sc">$</span>dayl <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">|</span> df<span class="sc">$</span>dayl <span class="sc">&gt;</span> <span class="dv">86400</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Invalid 'dayl' values:"</span>, dayl_invalid, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># temperature (C): -50 to 60 C</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"tmax"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    tmax_invalid <span class="ot">&lt;-</span> <span class="fu">sum</span>(df<span class="sc">$</span>tmax <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">50</span> <span class="sc">|</span> df<span class="sc">$</span>tmax <span class="sc">&gt;</span> <span class="dv">60</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Invalid 'tmax' values:"</span>, tmax_invalid, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"tmin"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    tmin_invalid <span class="ot">&lt;-</span> <span class="fu">sum</span>(df<span class="sc">$</span>tmin <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">50</span> <span class="sc">|</span> df<span class="sc">$</span>tmin <span class="sc">&gt;</span> <span class="dv">60</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Invalid 'tmin' values:"</span>, tmin_invalid, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Crop : values are only 0, 1, or 2</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"crop"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    crop_invalid <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span>df<span class="sc">$</span>crop <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Invalid 'crop' values (not 0, 1, or 2):"</span>, crop_invalid, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>  <span class="co"># non-negative </span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Non-Negative Value Checks:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  non_negative_columns <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"LAI"</span>, <span class="st">"FPAR"</span>, <span class="st">"PLE"</span>, <span class="st">"PET"</span>, <span class="st">"LE"</span>, <span class="st">"ET"</span>, <span class="st">"prcp"</span>, <span class="st">"srad"</span>,<span class="st">"vp"</span>,<span class="st">"swe"</span>)</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (col <span class="cf">in</span> non_negative_columns) {</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (col <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>      non_negative_invalid <span class="ot">&lt;-</span> <span class="fu">sum</span>(df[[col]] <span class="sc">&lt;</span> <span class="dv">0</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="st">"Invalid"</span>, col, <span class="st">"values (negative):"</span>, non_negative_invalid, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>  <span class="co"># consistency in units </span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Units and Data Type Check: </span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>  expected_units <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Category"</span>, <span class="st">"seconds"</span>, <span class="st">"mm/day"</span>, <span class="st">"W/m^2"</span>, <span class="st">"kg/m^2"</span>, <span class="st">"degrees C"</span>, <span class="st">"Pa"</span>, <span class="st">"unitless"</span>, <span class="st">"m^2/m^2"</span>)</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>  expected_data_types <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="st">"float32"</span>, <span class="fu">length</span>(expected_units))  <span class="co"># assuming all columns are float32</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"Units"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>    unit_check <span class="ot">&lt;-</span> <span class="fu">all</span>(df<span class="sc">$</span>Units <span class="sc">%in%</span> expected_units)</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (unit_check) {</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="st">"All 'Units' are consistent.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="st">"Inconsistent 'Units' found.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check if all columns are float32</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"Data Type"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>    data_type_check <span class="ot">&lt;-</span> <span class="fu">all</span>(df<span class="sc">$</span><span class="st">`</span><span class="at">Data Type</span><span class="st">`</span> <span class="sc">==</span> <span class="st">"float32"</span>)</span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (data_type_check) {</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="st">"All 'Data Type' values are consistent (float32).</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>      <span class="fu">cat</span>(<span class="st">"Inconsistent 'Data Type' values found.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a><span class="co"># check for each dataset</span></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>  dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year)</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check if the dataset exists in the environment</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">exists</span>(dataset_name)) {</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">get</span>(dataset_name)</span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"Data Quality Check for"</span>, dataset_name, <span class="st">":</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">check_data_quality</span>(df)</span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">-------------------------------</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"Dataset"</span>, dataset_name, <span class="st">"does not exist.</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Data Quality Check for Illinois_2000 :
+Completeness Check: 
+Total missing values: 2296407 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [7,585,998 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:7585998] 1 1 1 1 1 1 1 1 1 1 ...
+ $ date: chr [1:7585998] "2000-02-18" "2000-02-18" "2000-02-18" "2000-02-18" ...
+ $ lat : num [1:7585998] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:7585998] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:7585998] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:7585998] 38175 38175 38175 38175 38175 ...
+ $ prcp: num [1:7585998] 2.6 2.61 3.56 3.56 3.58 ...
+ $ srad: num [1:7585998] 280 280 259 260 260 ...
+ $ swe : num [1:7585998] 48.3 47.3 49.6 51.8 53 ...
+ $ tmax: num [1:7585998] 7.96 7.99 7.61 7.66 7.65 ...
+ $ tmin: num [1:7585998] -0.489 -0.487 -0.351 -0.367 -0.364 ...
+ $ vp  : num [1:7585998] 631 631 637 636 637 ...
+ $ EVI : num [1:7585998] -11 -11 -46 -56 -67 -43 -37 -37 -42 -97 ...
+ $ NDVI: num [1:7585998] -10 -10 -41 -51 -62 -39 -33 -33 -39 -91 ...
+ $ ET  : num [1:7585998] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:7585998] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:7585998] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:7585998] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:7585998] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:7585998] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2002 :
+Completeness Check: 
+Total missing values: 2691626 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 99 99 99 99 99 99 99 99 99 99 ...
+ $ date: chr [1:8575476] "2002-01-04" "2002-01-04" "2002-01-04" "2002-01-04" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32550 32550 32550 32550 32550 ...
+ $ prcp: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ srad: num [1:8575476] 175 175 177 177 177 ...
+ $ swe : num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tmax: num [1:8575476] 4.12 4.12 4.03 4.04 4.04 ...
+ $ tmin: num [1:8575476] -3.29 -3.27 -3.49 -3.47 -3.46 ...
+ $ vp  : num [1:8575476] 490 490 484 485 485 ...
+ $ EVI : num [1:8575476] NA NA -56 NA NA NA NA NA NA NA ...
+ $ NDVI: num [1:8575476] NA NA -1631 NA NA ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2004 :
+Completeness Check: 
+Total missing values: 2675611 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,740,389 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8740389] 203 203 203 203 203 203 203 203 203 203 ...
+ $ date: chr [1:8740389] "2004-01-02" "2004-01-02" "2004-01-02" "2004-01-02" ...
+ $ lat : num [1:8740389] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8740389] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8740389] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8740389] 32427 32427 32427 32427 32427 ...
+ $ prcp: num [1:8740389] 1.75 1.78 1.15 1.13 1.13 ...
+ $ srad: num [1:8740389] 178 177 174 174 174 ...
+ $ swe : num [1:8740389] 2.17 2.25 0 0 0 ...
+ $ tmax: num [1:8740389] 1.31 1.33 1.02 1.05 1.08 ...
+ $ tmin: num [1:8740389] -7.32 -7.25 -7.71 -7.68 -7.64 ...
+ $ vp  : num [1:8740389] 392 393 382 383 384 ...
+ $ EVI : num [1:8740389] -149 -149 4 109 -118 -289 -103 -103 112 158 ...
+ $ NDVI: num [1:8740389] -256 -256 5 112 -333 ...
+ $ ET  : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2006 :
+Completeness Check: 
+Total missing values: 2660135 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 308 308 308 308 308 308 308 308 308 308 ...
+ $ date: chr [1:8575476] "2006-01-06" "2006-01-06" "2006-01-06" "2006-01-06" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32688 32688 32688 32688 32688 ...
+ $ prcp: num [1:8575476] 0.343 0.311 0.584 0.56 0.544 ...
+ $ srad: num [1:8575476] 169 168 162 162 162 ...
+ $ swe : num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tmax: num [1:8575476] 5.04 5.05 4.82 4.85 4.87 ...
+ $ tmin: num [1:8575476] -1.43 -1.42 -1.6 -1.6 -1.58 ...
+ $ vp  : num [1:8575476] 556 557 550 551 551 ...
+ $ EVI : num [1:8575476] NA NA NA NA NA -53 -53 -53 NA NA ...
+ $ NDVI: num [1:8575476] NA NA NA NA NA -1170 -1170 -1170 NA NA ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2008 :
+Completeness Check: 
+Total missing values: 2632673 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 412 412 412 412 412 412 412 412 412 412 ...
+ $ date: chr [1:8575476] "2008-01-04" "2008-01-04" "2008-01-04" "2008-01-04" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32550 32550 32550 32550 32550 ...
+ $ prcp: num [1:8575476] 4.08 4.19 8.75 8.09 9.78 ...
+ $ srad: num [1:8575476] 190 193 182 182 181 ...
+ $ swe : num [1:8575476] 65.3 85.8 88.9 90.4 81.1 ...
+ $ tmax: num [1:8575476] 9.56 9.57 9.47 9.49 9.51 ...
+ $ tmin: num [1:8575476] 0.541 0.557 0.529 0.529 0.537 ...
+ $ vp  : num [1:8575476] 670 671 667 667 668 ...
+ $ EVI : num [1:8575476] -195 -195 -187 -14 -163 NA 16 16 NA 10 ...
+ $ NDVI: num [1:8575476] -1125 -1125 -1231 -1000 -1276 ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2010 :
+Completeness Check: 
+Total missing values: 2749754 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,740,389 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8740389] 516 516 516 516 516 516 516 516 516 516 ...
+ $ date: chr [1:8740389] "2010-01-01" "2010-01-01" "2010-01-01" "2010-01-01" ...
+ $ lat : num [1:8740389] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8740389] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8740389] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8740389] 32370 32370 32370 32370 32370 ...
+ $ prcp: num [1:8740389] 1.82 2.14 2.04 1.72 1.47 ...
+ $ srad: num [1:8740389] 161 157 178 177 177 ...
+ $ swe : num [1:8740389] 2.89 4.17 7.05 4.2 1.88 ...
+ $ tmax: num [1:8740389] -3.92 -3.88 -4.32 -4.29 -4.25 ...
+ $ tmin: num [1:8740389] -10.4 -10.4 -10.8 -10.8 -10.7 ...
+ $ vp  : num [1:8740389] 288 288 278 279 280 ...
+ $ EVI : num [1:8740389] 50 50 -123 -83 -75 -65 -38 -38 2 0 ...
+ $ NDVI: num [1:8740389] 51 51 -225 -135 -124 -92 -48 -48 3 0 ...
+ $ ET  : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2012 :
+Completeness Check: 
+Total missing values: 2726348 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 621 621 621 621 621 621 621 621 621 621 ...
+ $ date: chr [1:8575476] "2012-01-06" "2012-01-06" "2012-01-06" "2012-01-06" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32688 32688 32688 32688 32688 ...
+ $ prcp: num [1:8575476] 1.32 1.54 0 0 0 ...
+ $ srad: num [1:8575476] 190 190 200 200 200 ...
+ $ swe : num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tmax: num [1:8575476] 7.53 7.51 7.76 7.75 7.74 ...
+ $ tmin: num [1:8575476] -2.05 -2.04 -2.53 -2.5 -2.46 ...
+ $ vp  : num [1:8575476] 531 531 514 515 516 ...
+ $ EVI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ NDVI: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2014 :
+Completeness Check: 
+Total missing values: 2577333 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 725 725 725 725 725 725 725 725 725 725 ...
+ $ date: chr [1:8575476] "2014-01-03" "2014-01-03" "2014-01-03" "2014-01-03" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32487 32487 32487 32487 32487 ...
+ $ prcp: num [1:8575476] 2.94 2.99 6.45 6.45 6.45 ...
+ $ srad: num [1:8575476] 204 203 218 217 217 ...
+ $ swe : num [1:8575476] 26.5 26.1 102.3 102.3 102.3 ...
+ $ tmax: num [1:8575476] -7.86 -7.84 -8.26 -8.23 -8.2 ...
+ $ tmin: num [1:8575476] -18.3 -18.2 -19.2 -19.1 -19 ...
+ $ vp  : num [1:8575476] 155 156 145 146 147 ...
+ $ EVI : num [1:8575476] -253 -253 -241 -240 -241 -239 -215 -215 -183 -237 ...
+ $ NDVI: num [1:8575476] -763 -763 -709 -711 -718 -693 -585 -585 -473 -713 ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2016 :
+Completeness Check: 
+Total missing values: 2649080 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,740,389 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8740389] 829 829 829 829 829 829 829 829 829 829 ...
+ $ date: chr [1:8740389] "2016-01-01" "2016-01-01" "2016-01-01" "2016-01-01" ...
+ $ lat : num [1:8740389] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8740389] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8740389] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8740389] 32370 32370 32370 32370 32370 ...
+ $ prcp: num [1:8740389] 0.356 0.36 0 0 0 ...
+ $ srad: num [1:8740389] 175 177 179 179 179 ...
+ $ swe : num [1:8740389] 10.2 29.1 14.5 15.1 16.1 ...
+ $ tmax: num [1:8740389] 1.021 1.024 0.94 0.939 0.946 ...
+ $ tmin: num [1:8740389] -5.96 -5.93 -6.19 -6.16 -6.13 ...
+ $ vp  : num [1:8740389] 402 403 397 398 399 ...
+ $ EVI : num [1:8740389] -161 -161 -204 -170 -165 -52 -97 -97 -61 -84 ...
+ $ NDVI: num [1:8740389] -328 -328 -499 -398 -322 -102 -190 -190 -108 -119 ...
+ $ ET  : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8740389] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2018 :
+Completeness Check: 
+Total missing values: 2526591 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 934 934 934 934 934 934 934 934 934 934 ...
+ $ date: chr [1:8575476] "2018-01-05" "2018-01-05" "2018-01-05" "2018-01-05" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32618 32618 32618 32618 32618 ...
+ $ prcp: num [1:8575476] 1.321 1.36 0.429 0.577 0.757 ...
+ $ srad: num [1:8575476] 186 185 203 202 194 ...
+ $ swe : num [1:8575476] 0.791 0.849 0.469 0.486 0.487 ...
+ $ tmax: num [1:8575476] 1.83 1.8 1.95 1.92 1.91 ...
+ $ tmin: num [1:8575476] -8.26 -8.26 -8.18 -8.2 -8.2 ...
+ $ vp  : num [1:8575476] 372 372 375 374 374 ...
+ $ EVI : num [1:8575476] 102 102 476 476 -159 -4 -159 -159 -16 -120 ...
+ $ NDVI: num [1:8575476] 147 147 3025 3025 -736 ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2020 :
+Completeness Check: 
+Total missing values: 2448120 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 1038 1038 1038 1038 1038 1038 1038 1038 1038 1038 ...
+ $ date: chr [1:8575476] "2020-01-03" "2020-01-03" "2020-01-03" "2020-01-03" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32487 32487 32487 32487 32487 ...
+ $ prcp: num [1:8575476] 0.286 0 0.286 0.286 0.286 ...
+ $ srad: num [1:8575476] 180 193 197 198 198 ...
+ $ swe : num [1:8575476] 0.869 7.19 19.437 23.159 27.834 ...
+ $ tmax: num [1:8575476] 4.42 4.41 4.55 4.55 4.54 ...
+ $ tmin: num [1:8575476] -3.46 -3.44 -3.6 -3.58 -3.57 ...
+ $ vp  : num [1:8575476] 484 485 480 480 481 ...
+ $ EVI : num [1:8575476] -149 -149 206 13 5 25 41 41 93 62 ...
+ $ NDVI: num [1:8575476] -182 -182 285 7142 3333 ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------
+Data Quality Check for Illinois_2022 :
+Completeness Check: 
+Total missing values: 2600846 
+
+Consistency Check: 
+Number of duplicate rows: 0 
+
+Data Types Check: 
+tibble [8,575,476 × 20] (S3: tbl_df/tbl/data.frame)
+ $ week: int [1:8575476] 1143 1143 1143 1143 1143 1143 1143 1143 1143 1143 ...
+ $ date: chr [1:8575476] "2022-01-07" "2022-01-07" "2022-01-07" "2022-01-07" ...
+ $ lat : num [1:8575476] 41.3 41.3 37.7 37.7 37.7 ...
+ $ long: num [1:8575476] -91.5 -91.5 -91.5 -91.5 -91.5 ...
+ $ crop: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ dayl: num [1:8575476] 32763 32763 32763 32763 32763 ...
+ $ prcp: num [1:8575476] 0 0 0 0 0 0 0 0 0 0 ...
+ $ srad: num [1:8575476] 210 214 190 190 190 ...
+ $ swe : num [1:8575476] 1.07 6.92 0 0 0 ...
+ $ tmax: num [1:8575476] -0.594 -0.574 -0.669 -0.68 -0.686 ...
+ $ tmin: num [1:8575476] -10.5 -10.5 -10.8 -10.8 -10.7 ...
+ $ vp  : num [1:8575476] 291 291 285 286 287 ...
+ $ EVI : num [1:8575476] -159 -159 NA NA NA NA NA NA -123 -121 ...
+ $ NDVI: num [1:8575476] -738 -738 NA NA NA NA NA NA -727 -625 ...
+ $ ET  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LE  : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PET : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ PLE : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ FPAR: num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+ $ LAI : num [1:8575476] NA NA NA NA NA NA NA NA NA NA ...
+NULL
+
+Range Checks: 
+Invalid 'dayl' values: 0 
+Invalid 'tmax' values: 0 
+Invalid 'tmin' values: 0 
+Invalid 'crop' values (not 0, 1, or 2): 0 
+Non-Negative Value Checks:
+Invalid LAI values (negative): 0 
+Invalid FPAR values (negative): 0 
+Invalid PLE values (negative): 0 
+Invalid PET values (negative): 0 
+Invalid LE values (negative): 0 
+Invalid ET values (negative): 0 
+Invalid prcp values (negative): 0 
+Invalid srad values (negative): 0 
+Invalid vp values (negative): 0 
+Invalid swe values (negative): 0 
+Units and Data Type Check: 
+
+-------------------------------</code></pre>
+</div>
+</div>
+</section>
+<section id="imputing-missing-values" class="level4">
+<h4 class="anchored" data-anchor-id="imputing-missing-values">Imputing Missing Values</h4>
+<p>As shown above, there are many missing values. These will be imputed by calculating weekly means, and if the mean for a particular week is missing, the values will be imputed using the column mean.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># impute missing values based on weekly group means with a fallback to overall column mean</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>impute_missing_by_week <span class="ot">&lt;-</span> <span class="cf">function</span>(df, columns) {</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  columns <span class="ot">&lt;-</span> <span class="fu">intersect</span>(columns, <span class="fu">colnames</span>(df))</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"week"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (col <span class="cf">in</span> columns) {</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>      df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">group_by</span>(week) <span class="sc">%&gt;%</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>          <span class="at">group_mean =</span> <span class="fu">mean</span>(<span class="sc">!!</span><span class="fu">sym</span>(col), <span class="at">na.rm =</span> <span class="cn">TRUE</span>),<span class="co">#group mean (ignoring NA values)</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>          <span class="at">group_mean =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(group_mean), <span class="fu">mean</span>(<span class="sc">!!</span><span class="fu">sym</span>(col), <span class="at">na.rm =</span> <span class="cn">TRUE</span>), group_mean),<span class="co">#replace NA group means</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>          <span class="sc">!!</span><span class="fu">sym</span>(col) <span class="sc">:</span><span class="er">=</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(<span class="sc">!!</span><span class="fu">sym</span>(col)), group_mean, <span class="sc">!!</span><span class="fu">sym</span>(col)) <span class="co"># impute missing values</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">%&gt;%</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">select</span>(<span class="sc">-</span>group_mean) <span class="co"># remove the unwanted column</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"The column 'week' is missing in the dataset. Skipping imputation.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(df)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co"># variables to impute</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>columns_to_impute <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dayl"</span>, <span class="st">"prcp"</span>, <span class="st">"srad"</span>, <span class="st">"swe"</span>, <span class="st">"tmax"</span>, <span class="st">"tmin"</span>, <span class="st">"vp"</span>, </span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"EVI"</span>, <span class="st">"NDVI"</span>, <span class="st">"ET"</span>, <span class="st">"LE"</span>, <span class="st">"PET"</span>, <span class="st">"PLE"</span>, <span class="st">"FPAR"</span>, <span class="st">"LAI"</span>)</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="co"># performing imputation for the specified columns</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">exists</span>(dataset_name)) {</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">get</span>(dataset_name)</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">impute_missing_by_week</span>(df, columns_to_impute)</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assign</span>(dataset_name, df)</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"Dataset"</span>, dataset_name, <span class="st">"does not exist.</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># final check for NA values </span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>check_na_values <span class="ot">&lt;-</span> <span class="cf">function</span>(df) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sapply</span>(df, <span class="cf">function</span>(col) <span class="fu">sum</span>(<span class="fu">is.na</span>(col))) </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">exists</span>(dataset_name)) {</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">get</span>(dataset_name)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    na_counts <span class="ot">&lt;-</span> <span class="fu">check_na_values</span>(df)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># print the results</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">NA counts for"</span>, dataset_name, <span class="st">":</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(na_counts)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Dataset"</span>, dataset_name, <span class="st">"does not exist.</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+NA counts for Illinois_2000 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2002 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2004 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2006 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2008 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2010 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2012 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2014 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2016 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2018 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2020 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 
+
+NA counts for Illinois_2022 :
+week date  lat long crop dayl prcp srad  swe tmax tmin   vp  EVI NDVI   ET   LE 
+   0    0    0    0    0    0    0    0    0    0    0    0    0    0    0    0 
+ PET  PLE FPAR  LAI 
+   0    0    0    0 </code></pre>
+</div>
+</div>
+</section>
+<section id="outliers" class="level4">
+<h4 class="anchored" data-anchor-id="outliers">Outliers</h4>
+<p>Outliers will be detected using the IQR for each varaible.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># detect outliers using IQR</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>detect_outliers <span class="ot">&lt;-</span> <span class="cf">function</span>(df, columns) {</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  outlier_summary <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (col <span class="cf">in</span> columns) {</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (col <span class="sc">%in%</span> <span class="fu">colnames</span>(df)) {</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Calculate Q1, Q3, and IQR</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>      Q1 <span class="ot">&lt;-</span> <span class="fu">quantile</span>(df[[col]], <span class="fl">0.25</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      Q3 <span class="ot">&lt;-</span> <span class="fu">quantile</span>(df[[col]], <span class="fl">0.75</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>      IQR <span class="ot">&lt;-</span> Q3 <span class="sc">-</span> Q1</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>      <span class="co">#outlier thresholds</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>      lower_bound <span class="ot">&lt;-</span> Q1 <span class="sc">-</span> <span class="fl">1.5</span> <span class="sc">*</span> IQR</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>      upper_bound <span class="ot">&lt;-</span> Q3 <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> IQR</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>      <span class="co"># identify outliers</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>      outliers <span class="ot">&lt;-</span> <span class="fu">which</span>(df[[col]] <span class="sc">&lt;</span> lower_bound <span class="sc">|</span> df[[col]] <span class="sc">&gt;</span> upper_bound)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>      outlier_summary[[col]] <span class="ot">&lt;-</span> <span class="fu">length</span>(outliers)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(outlier_summary)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co"># columns to check for outliers in</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>columns_to_check <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dayl"</span>, <span class="st">"prcp"</span>, <span class="st">"srad"</span>, <span class="st">"swe"</span>, <span class="st">"tmax"</span>, <span class="st">"tmin"</span>, <span class="st">"vp"</span>, </span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"EVI"</span>, <span class="st">"NDVI"</span>, <span class="st">"ET"</span>, <span class="st">"LE"</span>, <span class="st">"PET"</span>, <span class="st">"PLE"</span>, <span class="st">"FPAR"</span>, <span class="st">"LAI"</span>)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year)</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">exists</span>(dataset_name)) {</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">get</span>(dataset_name)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Outlier summary for"</span>, dataset_name, <span class="st">":</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    outlier_counts <span class="ot">&lt;-</span> <span class="fu">detect_outliers</span>(df, columns_to_check)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(outlier_counts)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Dataset"</span>, dataset_name, <span class="st">"does not exist.</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Outlier summary for Illinois_2000 :
+$dayl
+[1] 0
+
+$prcp
+[1] 234645
+
+$srad
+[1] 0
+
+$swe
+[1] 1063929
+
+$tmax
+[1] 79114
+
+$tmin
+[1] 37076
+
+$vp
+[1] 0
+
+$EVI
+[1] 1112
+
+$NDVI
+[1] 0
+
+$ET
+[1] 116652
+
+$LE
+[1] 119695
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 596
+
+$LAI
+[1] 273381
+
+
+Outlier summary for Illinois_2002 :
+$dayl
+[1] 0
+
+$prcp
+[1] 601637
+
+$srad
+[1] 0
+
+$swe
+[1] 792279
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 9765
+
+$NDVI
+[1] 0
+
+$ET
+[1] 58323
+
+$LE
+[1] 59685
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 3720
+
+$LAI
+[1] 241647
+
+
+Outlier summary for Illinois_2004 :
+$dayl
+[1] 0
+
+$prcp
+[1] 211042
+
+$srad
+[1] 0
+
+$swe
+[1] 1358858
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 347
+
+$NDVI
+[1] 0
+
+$ET
+[1] 2927
+
+$LE
+[1] 3342
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 466
+
+$LAI
+[1] 229107
+
+
+Outlier summary for Illinois_2006 :
+$dayl
+[1] 0
+
+$prcp
+[1] 276961
+
+$srad
+[1] 0
+
+$swe
+[1] 461830
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 4015
+
+$NDVI
+[1] 0
+
+$ET
+[1] 426223
+
+$LE
+[1] 434854
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 653
+
+$LAI
+[1] 426484
+
+
+Outlier summary for Illinois_2008 :
+$dayl
+[1] 0
+
+$prcp
+[1] 376841
+
+$srad
+[1] 0
+
+$swe
+[1] 1655848
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 334
+
+$NDVI
+[1] 0
+
+$ET
+[1] 62414
+
+$LE
+[1] 64764
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 307
+
+$LAI
+[1] 301877
+
+
+Outlier summary for Illinois_2010 :
+$dayl
+[1] 0
+
+$prcp
+[1] 482607
+
+$srad
+[1] 0
+
+$swe
+[1] 2050750
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 358
+
+$NDVI
+[1] 0
+
+$ET
+[1] 5538
+
+$LE
+[1] 5986
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 332
+
+$LAI
+[1] 291353
+
+
+Outlier summary for Illinois_2012 :
+$dayl
+[1] 0
+
+$prcp
+[1] 539544
+
+$srad
+[1] 0
+
+$swe
+[1] 977008
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 218
+
+$EVI
+[1] 3437
+
+$NDVI
+[1] 7391
+
+$ET
+[1] 314542
+
+$LE
+[1] 316912
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 818
+
+$LAI
+[1] 276626
+
+
+Outlier summary for Illinois_2014 :
+$dayl
+[1] 0
+
+$prcp
+[1] 389820
+
+$srad
+[1] 0
+
+$swe
+[1] 1575357
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 18
+
+$NDVI
+[1] 0
+
+$ET
+[1] 1675
+
+$LE
+[1] 2197
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 260
+
+$LAI
+[1] 319532
+
+
+Outlier summary for Illinois_2016 :
+$dayl
+[1] 0
+
+$prcp
+[1] 407029
+
+$srad
+[1] 0
+
+$swe
+[1] 1590049
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 34267
+
+$NDVI
+[1] 0
+
+$ET
+[1] 46163
+
+$LE
+[1] 48173
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 486
+
+$LAI
+[1] 461918
+
+
+Outlier summary for Illinois_2018 :
+$dayl
+[1] 0
+
+$prcp
+[1] 591730
+
+$srad
+[1] 0
+
+$swe
+[1] 2016763
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 15241
+
+$NDVI
+[1] 0
+
+$ET
+[1] 119799
+
+$LE
+[1] 125019
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 370
+
+$LAI
+[1] 539255
+
+
+Outlier summary for Illinois_2020 :
+$dayl
+[1] 0
+
+$prcp
+[1] 475221
+
+$srad
+[1] 0
+
+$swe
+[1] 1093987
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 17805
+
+$NDVI
+[1] 0
+
+$ET
+[1] 24715
+
+$LE
+[1] 25242
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 428
+
+$LAI
+[1] 523491
+
+
+Outlier summary for Illinois_2022 :
+$dayl
+[1] 0
+
+$prcp
+[1] 208102
+
+$srad
+[1] 0
+
+$swe
+[1] 1862880
+
+$tmax
+[1] 0
+
+$tmin
+[1] 0
+
+$vp
+[1] 0
+
+$EVI
+[1] 1749
+
+$NDVI
+[1] 0
+
+$ET
+[1] 18411
+
+$LE
+[1] 19667
+
+$PET
+[1] 0
+
+$PLE
+[1] 0
+
+$FPAR
+[1] 316
+
+$LAI
+[1] 533934</code></pre>
+</div>
+</div>
+<p>As shown above, there are quite a few outliers; however, they will not be removed from the data.</p>
+</section>
+<section id="reduced-data-sets" class="level4">
+<h4 class="anchored" data-anchor-id="reduced-data-sets">Reduced Data Sets</h4>
+<p>There are multiple entries for the same date across all years. To simplify the analysis, a reduced dataset containing daily averages will be created and used in the downstream analysis.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create reduced data set for each year </span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_"</span>, year)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">exists</span>(dataset_name)) {</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">get</span>(dataset_name)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># convert `week` and `crop` into factors</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">week =</span> <span class="fu">as.factor</span>(week),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        <span class="at">crop =</span> <span class="fu">as.factor</span>(crop)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># group by date and aggregate</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    df_grouped <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">group_by</span>(date) <span class="sc">%&gt;%</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">summarise</span>(</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        <span class="co"># for numeric columns, calculate the mean</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">across</span>(<span class="fu">where</span>(is.numeric), \(x) <span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># for categorical columns, pick the mode</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">crop =</span> <span class="fu">names</span>(<span class="fu">which.max</span>(<span class="fu">table</span>(crop))),</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">week =</span> <span class="fu">names</span>(<span class="fu">which.max</span>(<span class="fu">table</span>(week))),</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    new_dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_g_"</span>, year)</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assign</span>(new_dataset_name, df_grouped)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Dataset"</span>, dataset_name, <span class="st">"does not exist.</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="combined-data" class="level4">
+<h4 class="anchored" data-anchor-id="combined-data">Combined Data</h4>
+<p>The data for all years, including both even and odd years, will be combined into a single data frame.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># empty list to store datasets</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>combined_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (year <span class="cf">in</span> years) {</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  grouped_dataset_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Illinois_g_"</span>, year)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">exists</span>(grouped_dataset_name)) {</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    df_grouped <span class="ot">&lt;-</span> <span class="fu">get</span>(grouped_dataset_name)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># add a year column </span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    df_grouped <span class="ot">&lt;-</span> df_grouped <span class="sc">%&gt;%</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">year =</span> year)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    combined_list[[grouped_dataset_name]] <span class="ot">&lt;-</span> df_grouped <span class="co"># append to the list</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Grouped dataset"</span>, grouped_dataset_name, <span class="st">"does not exist.</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co"># combine all data sets into one</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>combined_dataset <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(combined_list)</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co"># save as CSV</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(combined_dataset, "even_combined_dataset.csv", row.names = FALSE)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load the datasets for even and odd years </span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>even_combined_dataset <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"Data_new/even_combined_dataset.csv"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>odd_combined_dataset <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"Data_new/odd_combined_dataset.csv"</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># combine the two datasets</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>combined_dataset <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(even_combined_dataset, odd_combined_dataset)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># save a CSV </span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(combined_dataset, "combined_dataset.csv", row.names = FALSE)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="exploratory-data-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="exploratory-data-analysis">Exploratory Data Analysis</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load dataset</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>combined_dataset <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"Data_new/combined_dataset.csv"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># summary statistics</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(combined_dataset)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     date                lat             long             dayl      
+ Length:1244        Min.   :39.75   Min.   :-89.42   Min.   :32924  
+ Class :character   1st Qu.:39.75   1st Qu.:-89.42   1st Qu.:36299  
+ Mode  :character   Median :39.75   Median :-89.42   Median :43282  
+                    Mean   :39.75   Mean   :-89.42   Mean   :43233  
+                    3rd Qu.:39.75   3rd Qu.:-89.42   3rd Qu.:50166  
+                    Max.   :39.75   Max.   :-89.42   Max.   :53476  
+      prcp             srad             swe               tmax        
+ Min.   : 0.000   Min.   : 99.21   Min.   : 0.0000   Min.   :-10.314  
+ 1st Qu.: 1.066   1st Qu.:237.38   1st Qu.: 0.0000   1st Qu.:  8.528  
+ Median : 2.442   Median :331.20   Median : 0.0000   Median : 18.698  
+ Mean   : 3.019   Mean   :312.00   Mean   : 3.4655   Mean   : 17.324  
+ 3rd Qu.: 4.276   3rd Qu.:381.84   3rd Qu.: 0.7101   3rd Qu.: 27.301  
+ Max.   :18.410   Max.   :484.59   Max.   :76.4937   Max.   : 36.417  
+      tmin               vp              EVI              NDVI        
+ Min.   :-19.545   Min.   : 139.7   Min.   : -68.2   Min.   : -55.24  
+ 1st Qu.: -1.773   1st Qu.: 554.2   1st Qu.:1586.3   1st Qu.:3039.01  
+ Median :  6.337   Median : 975.3   Median :2318.8   Median :4078.38  
+ Mean   :  6.014   Mean   :1134.2   Mean   :2952.0   Mean   :4575.86  
+ 3rd Qu.: 15.058   3rd Qu.:1720.2   3rd Qu.:4173.5   3rd Qu.:6101.49  
+ Max.   : 22.708   Max.   :2745.7   Max.   :7062.9   Max.   :8529.81  
+       ET               LE               PET              PLE         
+ Min.   : 21.86   Min.   :  79.22   Min.   : 23.36   Min.   :  84.61  
+ 1st Qu.: 63.07   1st Qu.: 195.79   1st Qu.:115.34   1st Qu.: 360.17  
+ Median :108.51   Median : 334.95   Median :280.22   Median : 862.01  
+ Mean   :141.79   Mean   : 436.34   Mean   :280.39   Mean   : 862.01  
+ 3rd Qu.:209.31   3rd Qu.: 641.03   3rd Qu.:431.10   3rd Qu.:1320.38  
+ Max.   :395.45   Max.   :1205.94   Max.   :607.74   Max.   :1844.58  
+      FPAR             LAI               crop        week             year     
+ Min.   : 1.119   Min.   : 0.1879   Min.   :2   Min.   :   1.0   Min.   :2000  
+ 1st Qu.:18.765   1st Qu.: 2.3791   1st Qu.:2   1st Qu.: 312.8   1st Qu.:2006  
+ Median :31.042   Median : 5.6867   Median :2   Median : 623.5   Median :2012  
+ Mean   :36.764   Mean   : 9.6696   Mean   :2   Mean   : 623.4   Mean   :2012  
+ 3rd Qu.:54.488   3rd Qu.:14.4917   3rd Qu.:2   3rd Qu.: 934.2   3rd Qu.:2018  
+ Max.   :81.964   Max.   :35.3938   Max.   :2   Max.   :1245.0   Max.   :2023  </code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note that <code>crop</code> has a single value (<code>2</code>), so it is beneficial to exclude this variable from subsequent analysis.</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># convert date to a date type </span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>combined_dataset<span class="sc">$</span>date <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(combined_dataset<span class="sc">$</span>date)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># plot of temperature  over time</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(combined_dataset, <span class="fu">aes</span>(<span class="at">x =</span> date)) <span class="sc">+</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> tmax, <span class="at">color =</span> <span class="st">"Temperature (Max)"</span>), <span class="at">size=</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> tmin, <span class="at">color =</span> <span class="st">"Temperature (Min)"</span>),<span class="at">size=</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Figure 1: Illinois Temperature Over Time"</span>, <span class="at">y =</span> <span class="st">"Temperature(Celcius)"</span>) <span class="sc">+</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_brewer</span>(<span class="at">palette =</span> <span class="st">'Accent'</span>) <span class="sc">+</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>   <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.title.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As shown in <em>Figure 1</em>, the temperature in Illinois fluctuates seasonally in the same way between the years 2000 and 2023.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot  of vegetation indices over time</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(combined_dataset, <span class="fu">aes</span>(<span class="at">x =</span> date)) <span class="sc">+</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> NDVI, <span class="at">color =</span> <span class="st">"NDVI"</span>)) <span class="sc">+</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> EVI, <span class="at">color =</span> <span class="st">"EVI"</span>)) <span class="sc">+</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Figure 2: Illinois Vegetation Indices Over Time"</span>, <span class="at">color =</span> <span class="st">"Incides"</span>) <span class="sc">+</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_brewer</span>(<span class="at">palette =</span> <span class="st">'Accent'</span>) <span class="sc">+</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>   <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.title.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.title.y =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As shown in <em>Figure 2</em>, vegetation indices in Illinois also fluctuate seasonally in the same way between the years 2000 and 2023.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># relationships between temperature and NDVI</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(combined_dataset, <span class="fu">aes</span>(<span class="at">x =</span> tmax, <span class="at">y =</span> NDVI)) <span class="sc">+</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"orchid4"</span>) <span class="sc">+</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Figure 3: NDVI as a function of Temperature"</span>,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Max Temperature (°C)"</span>, <span class="at">y =</span> <span class="st">"NDVI"</span>) <span class="sc">+</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>   <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 3</em> indicates a positive correlation between NDVI and maximum temperature.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># relationships between precipitation and NDVI</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(combined_dataset, <span class="fu">aes</span>(<span class="at">x =</span> prcp, <span class="at">y =</span> NDVI)) <span class="sc">+</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>,  <span class="at">color =</span> <span class="st">"orchid4"</span>, <span class="at">se=</span>F) <span class="sc">+</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Figure 4: NDVI as a function of Precipitation"</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Precipitation (mm/day)"</span>, <span class="at">y =</span> <span class="st">"NDVI"</span>) <span class="sc">+</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>   <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>There is no clear correlation between NDVI and precipitation levels (Figure 4).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># relationships between NDVI and EVI</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(combined_dataset, <span class="fu">aes</span>(<span class="at">x =</span> EVI, <span class="at">y =</span> NDVI)) <span class="sc">+</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"orchid"</span>) <span class="sc">+</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Figure 5: orrelation between NDVI and EVI"</span>, <span class="at">x =</span> <span class="st">"EVI"</span>, <span class="at">y =</span> <span class="st">"NDVI"</span>) <span class="sc">+</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>   <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As displayed above, NDVI and EVI have a positive correlation, which is expected since both are vegetation indices.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#pairwise scatter plots of NDVI and climate/vegetation variables</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">pairs</span>(combined_dataset <span class="sc">%&gt;%</span> <span class="fu">select</span>(NDVI, tmax, tmin, prcp, EVI), </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>      <span class="at">main =</span> <span class="st">" Figure 6: Pairwise Scatter Plots of NDVI and Climate/Veg Variables"</span>, </span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">col =</span> <span class="st">"steelblue"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As depicted by <em>Figure 6</em>, there is a clear correlation between temperature, EVI, and NDVI, while the relationship between these variables and precipitation is unclear.</p>
+</section>
+<section id="feature-selection" class="level3">
+<h3 class="anchored" data-anchor-id="feature-selection">Feature Selection</h3>
+<section id="correlation" class="level5">
+<h5 class="anchored" data-anchor-id="correlation">Correlation</h5>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load the dataset</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>climate_veg_data <span class="ot">&lt;-</span> combined_dataset </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"># feature selection using correlation</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"># exclude NDVI(outcome) and crop </span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>numeric_cols <span class="ot">&lt;-</span> climate_veg_data <span class="sc">%&gt;%</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">where</span>(is.numeric), <span class="sc">-</span>NDVI, <span class="sc">-</span>crop) </span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="co">#correlation matrix</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>corr_matrix <span class="ot">&lt;-</span> <span class="fu">cor</span>(numeric_cols, <span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="co">#replace NA with 0 (safe for findCorrelation)</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>corr_matrix[<span class="fu">is.na</span>(corr_matrix)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>corrplot<span class="sc">::</span><span class="fu">corrplot</span>(corr_matrix, <span class="at">method =</span> <span class="st">"color"</span>, <span class="at">col =</span> <span class="fu">colorRampPalette</span>(<span class="fu">c</span>(<span class="st">"white"</span>, <span class="st">"steelblue"</span>))(<span class="dv">200</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As shown above, most of the variables are highly correlated. This could pose a problem when developing a prediction model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># table of correlations</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>cor_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(corr_matrix)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(cor_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               lat          long          dayl          prcp          srad
+lat   1.000000e+00  1.000000e+00 -1.439670e-15  1.217140e-15 -4.712491e-16
+long  1.000000e+00  1.000000e+00 -1.432678e-15  1.226300e-15 -4.945098e-16
+dayl -1.439670e-15 -1.432678e-15  1.000000e+00  2.494249e-01  8.369193e-01
+prcp  1.217140e-15  1.226300e-15  2.494249e-01  1.000000e+00 -8.860986e-02
+srad -4.712491e-16 -4.945098e-16  8.369193e-01 -8.860986e-02  1.000000e+00
+swe  -2.125743e-18 -4.146613e-16 -2.716400e-01 -7.098589e-02 -7.700175e-02
+tmax  1.958885e-15  1.965775e-15  8.296683e-01  2.108833e-01  6.765840e-01
+tmin -6.887526e-17 -5.871612e-17  8.219883e-01  2.938265e-01  5.797806e-01
+vp    3.253047e-15  3.241194e-15  8.125976e-01  2.790661e-01  5.561948e-01
+EVI  -4.371155e-16 -4.182738e-16  7.669133e-01  1.739058e-01  5.764357e-01
+ET    1.420993e-15  1.382283e-15  8.398705e-01  2.083910e-01  6.387379e-01
+LE    7.160825e-16  6.481851e-16  8.383741e-01  2.087204e-01  6.366458e-01
+PET   4.204027e-15  4.197554e-15  9.444286e-01  1.736717e-01  7.841925e-01
+PLE   1.314346e-15  1.356929e-15  9.452009e-01  1.737980e-01  7.853012e-01
+FPAR  5.248568e-16  5.331921e-16  7.445035e-01  1.467751e-01  5.746494e-01
+LAI   1.227485e-16  1.368976e-16  7.311544e-01  1.418730e-01  5.598691e-01
+week  1.068819e-16 -4.014062e-15 -1.428600e-02  2.054617e-02 -3.535620e-02
+year -2.198856e-14 -1.503006e-14 -6.005512e-03  2.055283e-02 -2.193164e-02
+               swe          tmax          tmin            vp           EVI
+lat  -2.125743e-18  1.958885e-15 -6.887526e-17  3.253047e-15 -4.371155e-16
+long -4.146613e-16  1.965775e-15 -5.871612e-17  3.241194e-15 -4.182738e-16
+dayl -2.716400e-01  8.296683e-01  8.219883e-01  8.125976e-01  7.669133e-01
+prcp -7.098589e-02  2.108833e-01  2.938265e-01  2.790661e-01  1.739058e-01
+srad -7.700175e-02  6.765840e-01  5.797806e-01  5.561948e-01  5.764357e-01
+swe   1.000000e+00 -4.658280e-01 -4.811020e-01 -3.985511e-01 -3.762212e-01
+tmax -4.658280e-01  1.000000e+00  9.797638e-01  9.355285e-01  8.481010e-01
+tmin -4.811020e-01  9.797638e-01  1.000000e+00  9.658016e-01  8.696416e-01
+vp   -3.985511e-01  9.355285e-01  9.658016e-01  1.000000e+00  9.060013e-01
+EVI  -3.762212e-01  8.481010e-01  8.696416e-01  9.060013e-01  1.000000e+00
+ET   -2.815569e-01  8.083134e-01  8.388696e-01  8.985947e-01  9.465219e-01
+LE   -2.800646e-01  8.052645e-01  8.364291e-01  8.968077e-01  9.457454e-01
+PET  -3.751879e-01  9.244924e-01  9.103450e-01  9.041458e-01  8.720927e-01
+PLE  -3.755580e-01  9.238508e-01  9.094878e-01  9.026293e-01  8.706446e-01
+FPAR -4.053235e-01  8.745297e-01  8.855063e-01  9.130856e-01  9.804094e-01
+LAI  -3.168294e-01  7.983427e-01  8.225090e-01  8.808458e-01  9.785711e-01
+week -2.555861e-02  3.574493e-03  1.623604e-02  2.405047e-02  2.823404e-02
+year -1.086205e-02 -3.652899e-03  8.154271e-03  1.731496e-02  2.068560e-02
+                ET            LE           PET           PLE          FPAR
+lat   1.420993e-15  7.160825e-16  4.204027e-15  1.314346e-15  5.248568e-16
+long  1.382283e-15  6.481851e-16  4.197554e-15  1.356929e-15  5.331921e-16
+dayl  8.398705e-01  8.383741e-01  9.444286e-01  9.452009e-01  7.445035e-01
+prcp  2.083910e-01  2.087204e-01  1.736717e-01  1.737980e-01  1.467751e-01
+srad  6.387379e-01  6.366458e-01  7.841925e-01  7.853012e-01  5.746494e-01
+swe  -2.815569e-01 -2.800646e-01 -3.751879e-01 -3.755580e-01 -4.053235e-01
+tmax  8.083134e-01  8.052645e-01  9.244924e-01  9.238508e-01  8.745297e-01
+tmin  8.388696e-01  8.364291e-01  9.103450e-01  9.094878e-01  8.855063e-01
+vp    8.985947e-01  8.968077e-01  9.041458e-01  9.026293e-01  9.130856e-01
+EVI   9.465219e-01  9.457454e-01  8.720927e-01  8.706446e-01  9.804094e-01
+ET    1.000000e+00  9.998539e-01  8.803879e-01  8.789923e-01  9.157111e-01
+LE    9.998539e-01  1.000000e+00  8.780223e-01  8.768109e-01  9.142216e-01
+PET   8.803879e-01  8.780223e-01  1.000000e+00  9.999187e-01  8.772965e-01
+PLE   8.789923e-01  8.768109e-01  9.999187e-01  1.000000e+00  8.757006e-01
+FPAR  9.157111e-01  9.142216e-01  8.772965e-01  8.757006e-01  1.000000e+00
+LAI   9.545815e-01  9.542324e-01  8.398677e-01  8.381832e-01  9.720330e-01
+week  6.748531e-02  6.876338e-02 -6.064775e-02 -6.124044e-02  3.017731e-02
+year  6.729043e-02  6.852788e-02 -6.077492e-02 -6.137313e-02  2.045987e-02
+               LAI          week          year
+lat   1.227485e-16  1.068819e-16 -2.198856e-14
+long  1.368976e-16 -4.014062e-15 -1.503006e-14
+dayl  7.311544e-01 -1.428600e-02 -6.005512e-03
+prcp  1.418730e-01  2.054617e-02  2.055283e-02
+srad  5.598691e-01 -3.535620e-02 -2.193164e-02
+swe  -3.168294e-01 -2.555861e-02 -1.086205e-02
+tmax  7.983427e-01  3.574493e-03 -3.652899e-03
+tmin  8.225090e-01  1.623604e-02  8.154271e-03
+vp    8.808458e-01  2.405047e-02  1.731496e-02
+EVI   9.785711e-01  2.823404e-02  2.068560e-02
+ET    9.545815e-01  6.748531e-02  6.729043e-02
+LE    9.542324e-01  6.876338e-02  6.852788e-02
+PET   8.398677e-01 -6.064775e-02 -6.077492e-02
+PLE   8.381832e-01 -6.124044e-02 -6.137313e-02
+FPAR  9.720330e-01  3.017731e-02  2.045987e-02
+LAI   1.000000e+00  4.184615e-02  3.560955e-02
+week  4.184615e-02  1.000000e+00  9.991272e-01
+year  3.560955e-02  9.991272e-01  1.000000e+00</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">#highly correlated features (&gt; 0.85)</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>high_corr <span class="ot">&lt;-</span> <span class="fu">findCorrelation</span>(corr_matrix, <span class="at">cutoff =</span> <span class="fl">0.85</span>, <span class="at">names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">#features that are not highly correlated</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>selected_features_corr <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">colnames</span>(numeric_cols), high_corr)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>selected_features_corr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "lat"  "dayl" "prcp" "srad" "swe"  "tmax" "LAI"  "week"</code></pre>
+</div>
+</div>
+<p>The list above shows that if we were to have a 0.85 cutoff for correlation, over half of the variables would be excluded from our prediction model.</p>
+</section>
+<section id="k-means-clustering" class="level5">
+<h5 class="anchored" data-anchor-id="k-means-clustering">K-Means Clustering</h5>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># K-Means clustering to to look at feature importance</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co"># perform clustering on scaled data (-crop)</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co"># handle missing values before scaling</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>numeric_cols <span class="ot">&lt;-</span> climate_veg_data <span class="sc">%&gt;%</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">where</span>(is.numeric), <span class="sc">-</span>crop) </span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>scaled_data <span class="ot">&lt;-</span> <span class="fu">scale</span>(numeric_cols)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>) </span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>kmeans_result <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(scaled_data, <span class="at">centers =</span> <span class="dv">3</span>, <span class="at">nstart =</span> <span class="dv">25</span>)</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize  results</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>factoextra<span class="sc">::</span><span class="fu">fviz_cluster</span>(<span class="fu">list</span>(<span class="at">data =</span> scaled_data, <span class="at">cluster =</span> kmeans_result<span class="sc">$</span>cluster))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project4_phase2_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># variables with high variance within clusters</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>feature_variances <span class="ot">&lt;-</span> <span class="fu">apply</span>(scaled_data, <span class="dv">2</span>, var)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>selected_features_kmeans <span class="ot">&lt;-</span> <span class="fu">names</span>(feature_variances)[<span class="fu">order</span>(<span class="sc">-</span>feature_variances)[<span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>]]  <span class="co"># can adjust this number</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>final_selected_features <span class="ot">&lt;-</span> selected_features_kmeans</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co"># add NDVI </span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>final_selected_features <span class="ot">&lt;-</span> <span class="fu">unique</span>(<span class="fu">c</span>(final_selected_features, <span class="st">"NDVI"</span>))</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Selected Features for Predictive Modeling:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Selected Features for Predictive Modeling:</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(final_selected_features)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "swe"  "year" "EVI"  "LAI"  "prcp" "NDVI" "PET"  "tmax" "vp"   "week"
+[11] "FPAR" "ET"   "PLE"  "tmin" "dayl"</code></pre>
+</div>
+</div>
+<p>Since the correlation cutoff resulted in the exclusion of 10 variables, we will use the features selected after K-means clustering for the prediction model to include as reasonably many predictors as possible.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># modified dataset</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>modified_dataset <span class="ot">&lt;-</span> climate_veg_data <span class="sc">%&gt;%</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">all_of</span>(final_selected_features))  </span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="co"># save a CSV file</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(modified_dataset, "modified_dataset.csv", row.names = FALSE)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

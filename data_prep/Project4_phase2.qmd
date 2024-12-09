@@ -1,0 +1,526 @@
+---
+title: "Data Preprocessing, EDA and Feature Selection"
+format: html
+---
+```{r}
+#| label: setup
+#| echo: false
+#| message: false
+#| warning: false
+# loading packages
+library(arrow)
+library(dplyr)
+library(zoo)
+library(tidyr)
+library(ggplot2)
+library(corrplot)
+library(caret)
+library(cluster)
+library(factoextra)
+```
+
+
+
+
+### Data Validation and Preprocessing 
+
+The code below is for even years from 2000 to 2023. The preprocessing and validation for odd years are handled in a separate Quarto file due to limited working memory. 
+
+#### Load Datasets
+
+```{r}
+# even years from 2000 to 2023
+years <- seq(2000, 2023, by = 2)
+# sub-directory where the files are stored
+data_dir <- "Data/transformed_data"
+# read the parquet file for each year 
+for (year in years) {
+  file_path <- file.path(data_dir, paste0("Illinois_", year, ".parquet"))
+  #check if the file exists
+  if (file.exists(file_path)) {
+    assign(paste0("Illinois_", year), read_parquet(file_path)) # create a data frame name
+  } else {
+    message(paste("File", file_path, "does not exist."))
+  }
+}
+```
+
+
+
+#### Quality Check
+
+The code below checks for data completeness (null values), duplicate rows, range validity, and consistency in units and data types.
+
+```{r}
+#| message: false
+#| warning: false
+# data quality checks 
+check_data_quality <- function(df) {
+  # check for NA
+  completeness <- sum(is.na(df)) 
+  cat("Completeness Check: \n")
+  cat("Total missing values:", completeness, "\n\n")
+  # check for duplicates 
+  duplicates <- sum(duplicated(df)) 
+  cat("Consistency Check: \n")
+  cat("Number of duplicate rows:", duplicates, "\n\n")
+  # check  data types 
+  cat("Data Types Check: \n")
+  print(str(df), quote = FALSE)  
+  cat("\n")
+  # check ranges for numeric columns
+  # daylength (in seconds): (24 hours)
+  cat("Range Checks: \n")
+  if ("dayl" %in% colnames(df)) {
+    dayl_invalid <- sum(df$dayl < 0 | df$dayl > 86400, na.rm = TRUE)
+    cat("Invalid 'dayl' values:", dayl_invalid, "\n")
+  }
+  # temperature (C): -50 to 60 C
+  if ("tmax" %in% colnames(df)) {
+    tmax_invalid <- sum(df$tmax < -50 | df$tmax > 60, na.rm = TRUE)
+    cat("Invalid 'tmax' values:", tmax_invalid, "\n")
+  }
+  if ("tmin" %in% colnames(df)) {
+    tmin_invalid <- sum(df$tmin < -50 | df$tmin > 60, na.rm = TRUE)
+    cat("Invalid 'tmin' values:", tmin_invalid, "\n")
+  }
+  # Crop : values are only 0, 1, or 2
+  if ("crop" %in% colnames(df)) {
+    crop_invalid <- sum(!df$crop %in% c(0, 1, 2), na.rm = TRUE)
+    cat("Invalid 'crop' values (not 0, 1, or 2):", crop_invalid, "\n")
+  }
+  # non-negative 
+  cat("Non-Negative Value Checks:\n")
+  non_negative_columns <- c("LAI", "FPAR", "PLE", "PET", "LE", "ET", "prcp", "srad","vp","swe")
+  for (col in non_negative_columns) {
+    if (col %in% colnames(df)) {
+      non_negative_invalid <- sum(df[[col]] < 0, na.rm = TRUE)
+      cat("Invalid", col, "values (negative):", non_negative_invalid, "\n")
+    }
+  }
+
+  # consistency in units 
+  cat("Units and Data Type Check: \n")
+  expected_units <- c("Category", "seconds", "mm/day", "W/m^2", "kg/m^2", "degrees C", "Pa", "unitless", "m^2/m^2")
+  expected_data_types <- rep("float32", length(expected_units))  # assuming all columns are float32
+  if ("Units" %in% colnames(df)) {
+    unit_check <- all(df$Units %in% expected_units)
+    if (unit_check) {
+      cat("All 'Units' are consistent.\n")
+    } else {
+      cat("Inconsistent 'Units' found.\n")
+    }
+  }
+  # check if all columns are float32
+  if ("Data Type" %in% colnames(df)) {
+    data_type_check <- all(df$`Data Type` == "float32")
+    if (data_type_check) {
+      cat("All 'Data Type' values are consistent (float32).\n")
+    } else {
+      cat("Inconsistent 'Data Type' values found.\n")
+    }
+  }
+}
+
+# check for each dataset
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  
+  # check if the dataset exists in the environment
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    cat(paste("Data Quality Check for", dataset_name, ":\n"))
+    check_data_quality(df)
+    cat("\n-------------------------------\n")
+  } else {
+    cat(paste("Dataset", dataset_name, "does not exist.\n"))
+  }
+}
+
+```
+
+#### Imputing Missing Values
+
+As shown above, there are many missing values. These will be imputed by calculating weekly means, and if the mean for a particular week is missing, the values will be imputed using the column mean. 
+```{r}
+#| message: false
+#| warning: false
+# impute missing values based on weekly group means with a fallback to overall column mean
+impute_missing_by_week <- function(df, columns) {
+  columns <- intersect(columns, colnames(df))
+  if ("week" %in% colnames(df)) {
+    for (col in columns) {
+      df <- df %>%
+        group_by(week) %>%
+        mutate(
+          group_mean = mean(!!sym(col), na.rm = TRUE),#group mean (ignoring NA values)
+          group_mean = ifelse(is.na(group_mean), mean(!!sym(col), na.rm = TRUE), group_mean),#replace NA group means
+          !!sym(col) := ifelse(is.na(!!sym(col)), group_mean, !!sym(col)) # impute missing values
+        ) %>%
+        ungroup() %>%
+        select(-group_mean) # remove the unwanted column
+    }
+  } else {
+    cat("The column 'week' is missing in the dataset. Skipping imputation.\n")
+  }
+  return(df)
+}
+
+# variables to impute
+columns_to_impute <- c("dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", 
+                       "EVI", "NDVI", "ET", "LE", "PET", "PLE", "FPAR", "LAI")
+# performing imputation for the specified columns
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    df <- impute_missing_by_week(df, columns_to_impute)
+    assign(dataset_name, df)
+  } else {
+    cat(paste("Dataset", dataset_name, "does not exist.\n"))
+  }
+}
+```
+
+```{r}
+#| message: false
+#| warning: false
+# final check for NA values 
+check_na_values <- function(df) {
+  sapply(df, function(col) sum(is.na(col))) 
+}
+
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    na_counts <- check_na_values(df)
+    # print the results
+    cat(paste("\nNA counts for", dataset_name, ":\n"))
+    print(na_counts)
+  } else {
+    cat(paste("\nDataset", dataset_name, "does not exist.\n"))
+  }
+}
+
+```
+
+#### Outliers
+
+Outliers will be detected using the IQR for each varaible.
+```{r}
+#| message: false
+#| warning: false
+# detect outliers using IQR
+detect_outliers <- function(df, columns) {
+  outlier_summary <- list()
+  for (col in columns) {
+    if (col %in% colnames(df)) {
+      # Calculate Q1, Q3, and IQR
+      Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)
+      Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)
+      IQR <- Q3 - Q1
+      #outlier thresholds
+      lower_bound <- Q1 - 1.5 * IQR
+      upper_bound <- Q3 + 1.5 * IQR
+      # identify outliers
+      outliers <- which(df[[col]] < lower_bound | df[[col]] > upper_bound)
+      outlier_summary[[col]] <- length(outliers)
+    }
+  }
+  return(outlier_summary)
+}
+
+# columns to check for outliers in
+columns_to_check <- c("dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", 
+                      "EVI", "NDVI", "ET", "LE", "PET", "PLE", "FPAR", "LAI")
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    cat(paste("\nOutlier summary for", dataset_name, ":\n"))
+    outlier_counts <- detect_outliers(df, columns_to_check)
+    print(outlier_counts)
+  } else {
+    cat(paste("\nDataset", dataset_name, "does not exist.\n"))
+  }
+}
+
+```
+
+As shown above, there are quite a few outliers; however, they will not be removed from the data.
+
+
+#### Reduced Data Sets
+
+There are multiple entries for the same date across all years. To simplify the analysis, a reduced dataset containing daily averages will be created and used in the downstream analysis. 
+
+```{r}
+# create reduced data set for each year 
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    # convert `week` and `crop` into factors
+    df <- df %>%
+      mutate(
+        week = as.factor(week),
+        crop = as.factor(crop)
+      )
+    # group by date and aggregate
+    df_grouped <- df %>%
+      group_by(date) %>%
+      summarise(
+        # for numeric columns, calculate the mean
+        across(where(is.numeric), \(x) mean(x, na.rm = TRUE)),
+        # for categorical columns, pick the mode
+        crop = names(which.max(table(crop))),
+        week = names(which.max(table(week))),
+        .groups = "drop"
+      )
+    new_dataset_name <- paste0("Illinois_g_", year)
+    assign(new_dataset_name, df_grouped)
+  } else {
+    cat(paste("\nDataset", dataset_name, "does not exist.\n"))
+  }
+}
+```
+
+
+#### Combined Data 
+
+The data for all years, including both even and odd years, will be combined into a single data frame.
+
+```{r}
+# empty list to store datasets
+combined_list <- list()
+
+for (year in years) {
+  grouped_dataset_name <- paste0("Illinois_g_", year)
+  if (exists(grouped_dataset_name)) {
+    df_grouped <- get(grouped_dataset_name)
+    # add a year column 
+    df_grouped <- df_grouped %>%
+      mutate(year = year)
+    combined_list[[grouped_dataset_name]] <- df_grouped # append to the list
+  } else {
+    cat(paste("\nGrouped dataset", grouped_dataset_name, "does not exist.\n"))
+  }
+}
+
+# combine all data sets into one
+combined_dataset <- bind_rows(combined_list)
+# save as CSV
+# write.csv(combined_dataset, "even_combined_dataset.csv", row.names = FALSE)
+```
+
+```{r}
+# load the datasets for even and odd years 
+even_combined_dataset <- read.csv("Data_new/even_combined_dataset.csv")
+odd_combined_dataset <- read.csv("Data_new/odd_combined_dataset.csv")
+# combine the two datasets
+combined_dataset <- bind_rows(even_combined_dataset, odd_combined_dataset)
+# save a CSV 
+# write.csv(combined_dataset, "combined_dataset.csv", row.names = FALSE)
+```
+
+### Exploratory Data Analysis
+
+
+```{r}
+# load dataset
+combined_dataset <- read.csv("Data_new/combined_dataset.csv")
+# summary statistics
+summary(combined_dataset)
+```
+::: callout-note
+Note that `crop` has a single value (`2`), so it is beneficial to exclude this variable from subsequent analysis. 
+:::
+
+
+```{r}
+# convert date to a date type 
+combined_dataset$date <- as.Date(combined_dataset$date)
+# plot of temperature  over time
+ggplot(combined_dataset, aes(x = date)) +
+  geom_line(aes(y = tmax, color = "Temperature (Max)"), size= 0.2) +
+  geom_line(aes(y = tmin, color = "Temperature (Min)"),size= 0.2) +
+  labs(title = "Figure 1: Illinois Temperature Over Time", y = "Temperature(Celcius)") +
+  scale_color_brewer(palette = 'Accent') +
+   theme(plot.title = element_text(hjust = 0.5, size = 13),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank(),
+         axis.title.x = element_blank(),
+         legend.title = element_blank(),
+         axis.line = element_line(color = "black"))
+```
+
+As shown in *Figure 1*, the temperature in Illinois fluctuates seasonally in the same way between the years 2000 and 2023.
+
+```{r}
+# plot  of vegetation indices over time
+ggplot(combined_dataset, aes(x = date)) +
+  geom_line(aes(y = NDVI, color = "NDVI")) +
+  geom_line(aes(y = EVI, color = "EVI")) +
+  labs(title = "Figure 2: Illinois Vegetation Indices Over Time", color = "Incides") +
+  scale_color_brewer(palette = 'Accent') +
+   theme(plot.title = element_text(hjust = 0.5, size = 13),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank(),
+         axis.title.x = element_blank(),
+         axis.title.y = element_blank(),
+         legend.title = element_blank(),
+         axis.line = element_line(color = "black"))
+
+```
+As shown in *Figure 2*, vegetation indices in Illinois also fluctuate seasonally in the same way between the years 2000 and 2023.
+
+```{r}
+#| message: false
+#| warning: false
+# relationships between temperature and NDVI
+ggplot(combined_dataset, aes(x = tmax, y = NDVI)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", color = "orchid4") +
+  labs(title = "Figure 3: NDVI as a function of Temperature",
+       x = "Max Temperature (°C)", y = "NDVI") +
+   theme(plot.title = element_text(hjust = 0.5, size = 13),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank(),
+         legend.title = element_blank(),
+         axis.line = element_line(color = "black"))
+
+```
+
+*Figure 3* indicates a positive correlation between NDVI and maximum temperature.
+
+```{r}
+#| message: false
+#| warning: false
+# relationships between precipitation and NDVI
+ggplot(combined_dataset, aes(x = prcp, y = NDVI)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm",  color = "orchid4", se=F) +
+  labs(title = "Figure 4: NDVI as a function of Precipitation",
+       x = "Precipitation (mm/day)", y = "NDVI") +
+   theme(plot.title = element_text(hjust = 0.5, size = 13),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank(),
+         legend.title = element_blank(),
+         axis.line = element_line(color = "black"))
+
+```
+
+There is no clear correlation between NDVI and precipitation levels (Figure 4).
+
+```{r}
+#| message: false
+#| warning: false
+# relationships between NDVI and EVI
+ggplot(combined_dataset, aes(x = EVI, y = NDVI)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", color = "orchid") +
+  labs(title = "Figure 5: Correlation between NDVI and EVI", x = "EVI", y = "NDVI") +
+   theme(plot.title = element_text(hjust = 0.5, size = 13),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank(),
+         legend.title = element_blank(),
+         axis.line = element_line(color = "black"))
+```
+
+As displayed above, NDVI and EVI have a positive correlation, which is expected since both are vegetation indices.
+
+```{r}
+#| message: false
+#| warning: false
+#pairwise scatter plots of NDVI and climate/vegetation variables
+pairs(combined_dataset %>% select(NDVI, tmax, tmin, prcp, EVI), 
+      main = " Figure 6: Pairwise Scatter Plots of NDVI and Climate/Veg Variables", 
+      pch = 19, col = "steelblue")
+```
+As depicted by *Figure 6*, there is a clear correlation between temperature, EVI, and NDVI, while the relationship between these variables and precipitation is unclear.
+
+### Feature Selection 
+
+##### Correlation
+```{r}
+#| message: false
+#| warning: false
+# load the dataset
+climate_veg_data <- combined_dataset 
+# feature selection using correlation
+# exclude NDVI(outcome) and crop 
+numeric_cols <- climate_veg_data %>%
+  select(where(is.numeric), -NDVI, -crop) 
+#correlation matrix
+corr_matrix <- cor(numeric_cols, use = "pairwise.complete.obs")
+#replace NA with 0 (safe for findCorrelation)
+corr_matrix[is.na(corr_matrix)] <- 0
+corrplot::corrplot(corr_matrix, method = "color", col = colorRampPalette(c("white", "steelblue"))(200))
+
+```
+As shown above, most of the variables are highly correlated. This could pose a problem when developing a prediction model.
+
+
+```{r}
+# table of correlations
+cor_df <- as.data.frame(corr_matrix)
+print(cor_df)
+```
+
+
+
+
+```{r}
+#highly correlated features (> 0.85)
+high_corr <- findCorrelation(corr_matrix, cutoff = 0.85, names = TRUE)
+#features that are not highly correlated
+selected_features_corr <- setdiff(colnames(numeric_cols), high_corr)
+selected_features_corr
+```
+
+The list above shows that if we were to have a 0.85 cutoff for correlation, over half of the variables would be excluded from our prediction model. 
+
+
+##### K-Means Clustering
+```{r}
+# K-Means clustering to to look at feature importance
+# perform clustering on scaled data (-crop)
+# handle missing values before scaling
+numeric_cols <- climate_veg_data %>%
+  select(where(is.numeric), -crop) 
+scaled_data <- scale(numeric_cols)
+set.seed(123) 
+kmeans_result <- kmeans(scaled_data, centers = 3, nstart = 25)
+# visualize  results
+factoextra::fviz_cluster(list(data = scaled_data, cluster = kmeans_result$cluster))
+
+```
+
+```{r}
+# variables with high variance within clusters
+feature_variances <- apply(scaled_data, 2, var)
+selected_features_kmeans <- names(feature_variances)[order(-feature_variances)[1:15]]  # can adjust this number
+final_selected_features <- selected_features_kmeans
+# add NDVI 
+final_selected_features <- unique(c(final_selected_features, "NDVI"))
+cat("Selected Features for Predictive Modeling:\n")
+print(final_selected_features)
+```
+
+Since the correlation cutoff resulted in the exclusion of 10 variables, we will use the features selected after K-means clustering for the prediction model to include as reasonably many predictors as possible.
+
+```{r}
+# modified dataset
+modified_dataset <- climate_veg_data %>%
+  select(all_of(final_selected_features))  
+# save a CSV file
+# write.csv(modified_dataset, "modified_dataset.csv", row.names = FALSE)
+
+```
+

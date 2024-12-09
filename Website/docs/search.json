@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "exploratoryAnalysis.html",
+    "href": "exploratoryAnalysis.html",
+    "title": "Exploratory Analysis",
+    "section": "",
+    "text": "This page takes a deeper look into the data and shows how we started viewing the data with different types of plots. The exploratory analysis also includes some discussion of feature selection for the final model."
+  },
+  {
+    "objectID": "exploratoryAnalysis.html#summary-plots",
+    "href": "exploratoryAnalysis.html#summary-plots",
+    "title": "Exploratory Analysis",
+    "section": "Summary plots",
+    "text": "Summary plots\nWe first explore the NDVI variable that tells us how well crops are doing and compare the health of crops over time, and across different variables.\nAs shown in Figure 1, the temperature in Illinois fluctuates seasonally in the same way between the years 2000 and 2023.\nWe now plot the NDVI and EVI variables over time, we can see a cyclic pattern, which have one peak and valley each year, this makes sense because the seasons likely strongly affect NDVI and EVI, so we expect to see this cyclic pattern.\n\n\n\n\n\n\n\n\n\nAs shown in Figure 2, vegetation indices in Illinois also fluctuate seasonally in the same way between the years 2000 and 2023.\nWe next plot NDVI as a function of temperature, where it looks like we see linear correlation. This also is to be expected because crops tend to do better in the summer when the temperature is warmer.\n\n\n\n\n\n\n\n\n\nFigure 3 indicates a positive correlation between NDVI and maximum temperature.\nNext we plot NDVI as a function of precipitation. This plot is harder to see direct correlation between NDVI and precipitation but it gives us a sense of what the data look like.\n\n\n\n\n\n\n\n\n\nNow we plot the relationship between NDVI and EVI which seems to be correlated, which would be expected because they are different measurements for plant health.\n\n\n\n\n\n\n\n\n\nThere is no clear correlation between NDVI and precipitation levels (Figure 4).\nNow now make pairwise scatter plots of climate and vegetation variables of interest. These scatter plots look like they show linear correlations between the vegetation variables (NDVI and EVI) and temperature. The relationship between precipitation and the vegetation variables is less clear.\n\n\n\n\n\n\n\n\n\nAs depicted by Figure 6, there is a clear correlation between temperature, EVI, and NDVI, while the relationship between these variables and precipitation is unclear."
+  },
+  {
+    "objectID": "exploratoryAnalysis.html#feature-selection",
+    "href": "exploratoryAnalysis.html#feature-selection",
+    "title": "Exploratory Analysis",
+    "section": "Feature Selection",
+    "text": "Feature Selection\n\nCorrelation\nWe next made a correlation matrix between all of the climate and vegetation variables and select variables that are not highly correlated (have a correlation coefficient of less than 0.85).\n\n\n\n\n\n\n\n\n\nAs shown above, most of the variables are highly correlated. This could pose a problem when developing a prediction model.\nThe list above shows that if we were to have a 0.85 cutoff for correlation, over half of the variables would be excluded from our prediction model.\n\n\nK-Means Clustering\nFinally we use K-Means clustering to look at feature importance. We use K-means clustering to select important features that will be used in the final model phase of the analysis.\n\n\n\n\n\n\n\n\n\nThe final selected climate features to be used in the next step of analysis are swe, prcp, tmax, tmin, vp and dayl."
+  }
+]

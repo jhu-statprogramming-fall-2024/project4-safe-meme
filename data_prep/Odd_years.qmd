@@ -1,0 +1,304 @@
+---
+title: "Data Preprocessing "
+format: html
+---
+```{r}
+#| label: setup
+#| echo: false
+#| message: false
+#| warning: false
+# loading packages
+library(arrow)
+library(dplyr)
+library(zoo)
+library(tidyr)
+```
+
+### Data Validation and Preprocessing 
+
+The code below is for odd years from 2000 to 2023. The preprocessing and validation for even years are handled in a separate Quarto file due to limited working memory. 
+
+#### Load Datasets
+
+```{r}
+# odd years from 2000 to 2023
+years <- seq(2001, 2023, by = 2)
+# sub-directory where the files are stored
+data_dir <- "Data/transformed_data"
+# read the parquet file for each year 
+for (year in years) {
+  file_path <- file.path(data_dir, paste0("Illinois_", year, ".parquet"))
+  #check if the file exists
+  if (file.exists(file_path)) {
+    assign(paste0("Illinois_", year), read_parquet(file_path)) # create a data frame name
+  } else {
+    message(paste("File", file_path, "does not exist."))
+  }
+}
+```
+
+
+#### Quality Check
+
+The code below checks for data completeness (null values), duplicate rows, range validity, and consistency in units and data types.
+
+```{r}
+#| message: false
+#| warning: false
+# data quality checks 
+check_data_quality <- function(df) {
+  # check for NA
+  completeness <- sum(is.na(df)) 
+  cat("Completeness Check: \n")
+  cat("Total missing values:", completeness, "\n\n")
+  # check for duplicates 
+  duplicates <- sum(duplicated(df)) 
+  cat("Consistency Check: \n")
+  cat("Number of duplicate rows:", duplicates, "\n\n")
+  # check  data types 
+  cat("Data Types Check: \n")
+  print(str(df), quote = FALSE)  
+  cat("\n")
+  # check ranges for numeric columns
+  # daylength (in seconds): (24 hours)
+  cat("Range Checks: \n")
+  if ("dayl" %in% colnames(df)) {
+    dayl_invalid <- sum(df$dayl < 0 | df$dayl > 86400, na.rm = TRUE)
+    cat("Invalid 'dayl' values:", dayl_invalid, "\n")
+  }
+  # temperature (C): -50 to 60 C
+  if ("tmax" %in% colnames(df)) {
+    tmax_invalid <- sum(df$tmax < -50 | df$tmax > 60, na.rm = TRUE)
+    cat("Invalid 'tmax' values:", tmax_invalid, "\n")
+  }
+  if ("tmin" %in% colnames(df)) {
+    tmin_invalid <- sum(df$tmin < -50 | df$tmin > 60, na.rm = TRUE)
+    cat("Invalid 'tmin' values:", tmin_invalid, "\n")
+  }
+  # Crop : values are only 0, 1, or 2
+  if ("crop" %in% colnames(df)) {
+    crop_invalid <- sum(!df$crop %in% c(0, 1, 2), na.rm = TRUE)
+    cat("Invalid 'crop' values (not 0, 1, or 2):", crop_invalid, "\n")
+  }
+  # non-negative 
+  cat("Non-Negative Value Checks:\n")
+  non_negative_columns <- c("LAI", "FPAR", "PLE", "PET", "LE", "ET", "prcp", "srad","vp","swe")
+  for (col in non_negative_columns) {
+    if (col %in% colnames(df)) {
+      non_negative_invalid <- sum(df[[col]] < 0, na.rm = TRUE)
+      cat("Invalid", col, "values (negative):", non_negative_invalid, "\n")
+    }
+  }
+
+  # consistency in units 
+  cat("Units and Data Type Check: \n")
+  expected_units <- c("Category", "seconds", "mm/day", "W/m^2", "kg/m^2", "degrees C", "Pa", "unitless", "m^2/m^2")
+  expected_data_types <- rep("float32", length(expected_units))  # assuming all columns are float32
+  if ("Units" %in% colnames(df)) {
+    unit_check <- all(df$Units %in% expected_units)
+    if (unit_check) {
+      cat("All 'Units' are consistent.\n")
+    } else {
+      cat("Inconsistent 'Units' found.\n")
+    }
+  }
+  # check if all columns are float32
+  if ("Data Type" %in% colnames(df)) {
+    data_type_check <- all(df$`Data Type` == "float32")
+    if (data_type_check) {
+      cat("All 'Data Type' values are consistent (float32).\n")
+    } else {
+      cat("Inconsistent 'Data Type' values found.\n")
+    }
+  }
+}
+
+# check for each dataset
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  
+  # check if the dataset exists in the environment
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    cat(paste("Data Quality Check for", dataset_name, ":\n"))
+    check_data_quality(df)
+    cat("\n-------------------------------\n")
+  } else {
+    cat(paste("Dataset", dataset_name, "does not exist.\n"))
+  }
+}
+
+```
+
+#### Imputing Missing Values
+
+As shown above, there are many missing values. These will be imputed by calculating weekly means, and if the mean for a particular week is missing, the values will be imputed using the column mean. 
+
+```{r}
+#| message: false
+#| warning: false
+# impute missing values based on weekly group means with a fallback to overall column mean
+impute_missing_by_week <- function(df, columns) {
+  columns <- intersect(columns, colnames(df))
+  if ("week" %in% colnames(df)) {
+    for (col in columns) {
+      df <- df %>%
+        group_by(week) %>%
+        mutate(
+          group_mean = mean(!!sym(col), na.rm = TRUE),#group mean (ignoring NA values)
+          group_mean = ifelse(is.na(group_mean), mean(!!sym(col), na.rm = TRUE), group_mean),#replace NA group means
+          !!sym(col) := ifelse(is.na(!!sym(col)), group_mean, !!sym(col)) # impute missing values
+        ) %>%
+        ungroup() %>%
+        select(-group_mean) # remove the unwanted column
+    }
+  } else {
+    cat("The column 'week' is missing in the dataset. Skipping imputation.\n")
+  }
+  return(df)
+}
+
+# variables to impute
+columns_to_impute <- c("dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", 
+                       "EVI", "NDVI", "ET", "LE", "PET", "PLE", "FPAR", "LAI")
+# performing imputation for the specified columns
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    df <- impute_missing_by_week(df, columns_to_impute)
+    assign(dataset_name, df)
+  } else {
+    cat(paste("Dataset", dataset_name, "does not exist.\n"))
+  }
+}
+```
+
+
+```{r}
+#| message: false
+#| warning: false
+# final check for NA values 
+check_na_values <- function(df) {
+  sapply(df, function(col) sum(is.na(col))) 
+}
+
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    na_counts <- check_na_values(df)
+    # print the results
+    cat(paste("\nNA counts for", dataset_name, ":\n"))
+    print(na_counts)
+  } else {
+    cat(paste("\nDataset", dataset_name, "does not exist.\n"))
+  }
+}
+
+```
+
+#### Outliers 
+```{r}
+#| message: false
+#| warning: false
+# detect outliers using IQR
+detect_outliers <- function(df, columns) {
+  outlier_summary <- list()
+  for (col in columns) {
+    if (col %in% colnames(df)) {
+      # Calculate Q1, Q3, and IQR
+      Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)
+      Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)
+      IQR <- Q3 - Q1
+      #outlier thresholds
+      lower_bound <- Q1 - 1.5 * IQR
+      upper_bound <- Q3 + 1.5 * IQR
+      # identify outliers
+      outliers <- which(df[[col]] < lower_bound | df[[col]] > upper_bound)
+      outlier_summary[[col]] <- length(outliers)
+    }
+  }
+  return(outlier_summary)
+}
+
+# columns to check for outliers in
+columns_to_check <- c("dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp", 
+                      "EVI", "NDVI", "ET", "LE", "PET", "PLE", "FPAR", "LAI")
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    cat(paste("\nOutlier summary for", dataset_name, ":\n"))
+    outlier_counts <- detect_outliers(df, columns_to_check)
+    print(outlier_counts)
+  } else {
+    cat(paste("\nDataset", dataset_name, "does not exist.\n"))
+  }
+}
+
+```
+
+As shown above, there are quite a few outliers; however, they will not be removed from the data.
+
+
+#### Reduced Data Sets
+
+
+There are multiple entries for the same date across all years. To simplify the analysis, a reduced dataset containing daily averages will be created and used in the downstream analysis.
+
+```{r}
+# create reduced data set for each year 
+for (year in years) {
+  dataset_name <- paste0("Illinois_", year)
+  if (exists(dataset_name)) {
+    df <- get(dataset_name)
+    # convert `week` and `crop` into factors
+    df <- df %>%
+      mutate(
+        week = as.factor(week),
+        crop = as.factor(crop)
+      )
+    # group by date and aggregate
+    df_grouped <- df %>%
+      group_by(date) %>%
+      summarise(
+        # for numeric columns, calculate the mean
+        across(where(is.numeric), \(x) mean(x, na.rm = TRUE)),
+        # for categorical columns, pick the mode
+        crop = names(which.max(table(crop))),
+        week = names(which.max(table(week))),
+        .groups = "drop"
+      )
+    new_dataset_name <- paste0("Illinois_g_", year)
+    assign(new_dataset_name, df_grouped)
+  } else {
+    cat(paste("\nDataset", dataset_name, "does not exist.\n"))
+  }
+}
+```
+
+#### Combined Data 
+```{r}
+# empty list to store datasets
+combined_list <- list()
+
+for (year in years) {
+  grouped_dataset_name <- paste0("Illinois_g_", year)
+  if (exists(grouped_dataset_name)) {
+    df_grouped <- get(grouped_dataset_name)
+    # add a year column 
+    df_grouped <- df_grouped %>%
+      mutate(year = year)
+    combined_list[[grouped_dataset_name]] <- df_grouped # append to the list
+  } else {
+    cat(paste("\nGrouped dataset", grouped_dataset_name, "does not exist.\n"))
+  }
+}
+
+# combine all data sets into one
+combined_dataset.2 <- bind_rows(combined_list)
+# save as CSV
+#write.csv(combined_dataset.2, "odd_combined_dataset.csv", row.names = FALSE)
+```
+

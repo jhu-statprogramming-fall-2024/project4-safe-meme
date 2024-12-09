@@ -1,0 +1,250 @@
+---
+title: "Final Model"
+echo: false
+warning: false
+message: false
+---
+
+We decide to run a time series multiple linear regression model to predict the different plant health variables (for example the NDVI variable) of cropland in Illinois over time using the climate variables. To do this we use the library fable that allows us to run the model from a tsibble (a tibble with a time series component). We train the model on the data from 2000 to 2020 and then use the model to predict the health variable for the years 2021 to 2024. We then create the following plot to compare the actual data to the predicted confidence intervals.
+
+```{r}
+combined_dataset <- read.csv("Data_new/combined_dataset.csv")
+```
+
+```{r, fig.width=18, warning=FALSE, message=FALSE}
+library(forecast)
+library(fpp3)
+library(tsibbledata)
+library(tsibble)
+library(fable)
+library(ggplot2)
+library(ggpubr)
+```
+
+```{r, message = FALSE}
+
+# time series dataset able to be read in by TSLM using date(recorded in weeks) as the index
+modified_ts <- tsibble::tsibble(
+  date = as.Date(combined_dataset$date),
+  NDVI = combined_dataset$NDVI,
+  swe = combined_dataset$swe,
+  EVI = combined_dataset$EVI,
+  LAI = combined_dataset$LAI,
+  prcp = combined_dataset$prcp,
+  PET = combined_dataset$PET,
+  tmax = combined_dataset$tmax,
+  tmin = combined_dataset$tmin,
+  vp = combined_dataset$vp,
+  FPAR = combined_dataset$FPAR,
+  ET = combined_dataset$ET,
+  PLE = combined_dataset$PLE,
+  dayl = combined_dataset$dayl,
+  year = combined_dataset$year
+)
+
+```
+
+We first split the data into training and test data. We train the model on the data from 2000 to 2020 and then test the model on data from 2020 to 2024. We then build the model for each plant health variable. Finally we forcast the performance of the model using the test data on each of the plant health variables. The plots below show the resulting predictions from our models for each of the plant health variables of interest. 
+
+The following plots have the true value of the variable of interest over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. 
+
+```{r}
+# split of entire dataset to training and test (approx an 80-20 split)
+train <- modified_ts %>% filter_index(~ "2019-12-27")
+test <- modified_ts %>% filter_index("2020-01-03" ~.)
+
+##NDVI
+
+# plot NDVI over time (higher values indicate healthier vegetation)
+plot1ndvi <- modified_ts %>% ggplot(aes(x = date, y = NDVI)) +
+  geom_line(colour = "blue") +
+  theme_bw() +
+  labs(x = "Date", y = "NDVI", title = "NDVI Over Time")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+# time series linear model using crop health predictors and trend() to capture linear time trend
+train_ndvi <- train %>% model(TSLM(NDVI ~ swe + prcp + tmax + tmin + vp + dayl + trend()))
+
+# fit forecast with remaining test data
+forecast_test_ndvi <- forecast(train_ndvi, new_data = test)
+
+# compare predicted NDVI compared to entire time interval
+plot2ndvi <- forecast_test_ndvi %>% autoplot(modified_ts) + theme_bw() + labs(x = "Date", y = "NDVI", title = "NDVI Over Time with prediction")+theme(plot.title = element_text(hjust = 0.5))
+
+# isolated prediction using the test data
+plot3ndvi <- forecast_test_ndvi %>% autoplot() + theme_bw() + labs(x = "Date", y = "NDVI", title = "NDVI Prediction")+theme(plot.title = element_text(hjust = 0.5))
+
+## NDVI
+plot4ndvi <- augment(train_ndvi) %>%
+    ggplot(aes(x = date)) +
+    geom_line(aes(y = NDVI), color = "dark gray", size = 1) +
+    geom_line(aes(y = .fitted), color = "blue", size = 1) +
+    theme_light() +
+    labs(x = "Date", subtitle = "Predicted Vs Measured NDVI")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+ggarrange(plot1ndvi, plot4ndvi+ rremove("ylab"), plot2ndvi+rremove("legend"),plot3ndvi+ rremove("ylab"), labels = c("A", "B", "C"), ncol = 2, nrow = 2)
+```
+Plot A shows the measured value of the Normalized Difference Vegetation Index (NDVI) over time. Plot B shows the true measured value of NDVI in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of NDVI over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024). 
+
+```{r}
+##EVI
+
+# plot EVI over time (higher values indicate healthier vegetation)
+plot1evi <- modified_ts %>% ggplot(aes(x = date, y = EVI)) +
+  geom_line(colour = "darkgreen") +
+  theme_bw() +
+  labs(x = "Date", y = "EVI", title = "EVI Over Time")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+# time series linear model using crop health predictors and trend() to capture linear time trend
+train_evi <- train %>% model(TSLM(EVI ~ swe + prcp + tmax + tmin + vp + dayl + trend()))
+
+# fit forecast with remaining test data
+forecast_test_evi <- forecast(train_evi, new_data = test)
+
+# compare predicted NDVI compared to entire time interval
+plot2evi <-forecast_test_evi %>% autoplot(modified_ts, color = "darkgreen") + theme_bw() + labs(x = "Date", y = "EVI", title = "EVI Over Time with prediction")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+# isolated prediction using the test data
+plot3evi <-forecast_test_evi %>% autoplot(color = "darkgreen") + theme_bw() + labs(x = "Date", y = "EVI", title = "EVI Prediction")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+## EVI
+plot4evi <- augment(train_evi) %>%
+    ggplot(aes(x = date)) +
+    geom_line(aes(y = EVI), color = "dark gray", size = 1) +
+    geom_line(aes(y = .fitted), color = "darkgreen", size = 1) +
+    theme_light() +
+    labs(x = "Date", subtitle = "Predicted Vs Measured EVI")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+ggarrange(plot1evi, plot4evi+ rremove("ylab"), plot2evi+rremove("legend"),plot3evi+ rremove("ylab"), labels = c("A", "B", "C"), ncol = 2, nrow = 2)
+```
+Plot A shows the measured value of the Enhanced Vegetation Index (EVI) over time. Plot B shows the true measured value of EVI in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of EVI over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024). 
+
+```{r}
+##ET
+
+# plot ET over time (lower values indicate reduced plant activity and heightened water stress)
+plot1et<-modified_ts %>% ggplot(aes(x = date, y = ET)) +
+  geom_line(colour = "cornflowerblue") +
+  theme_bw() +
+  labs(x = "Date", y = "ET (mm/day)", title = "ET Over Time")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+# time series linear model using crop health predictors and trend() to capture linear time trend
+train_et <- train %>% model(TSLM(ET ~ swe + prcp + tmax + tmin + vp + dayl + trend()))
+
+# fit forecast with remaining test data
+forecast_test_et <- forecast(train_et, new_data = test)
+
+# compare predicted NDVI compared to entire time interval
+plot2et <- forecast_test_et %>% autoplot(modified_ts, color = "cornflowerblue") + theme_bw() + labs(x = "Date", y = "ET", title = "ET Over Time with prediction")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+# isolated prediction using the test data
+plot3et <- forecast_test_et %>% autoplot(color = "cornflowerblue") + theme_bw() + labs(x = "Date", y = "ET", title = "ET Prediction")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+## NDVI
+plot4et <- augment(train_et) %>%
+    ggplot(aes(x = date)) +
+    geom_line(aes(y = ET), color = "dark gray", size = 1) +
+    geom_line(aes(y = .fitted), color = "cornflowerblue", size = 1) +
+    theme_light() +
+    labs(x = "Date", subtitle = "Predicted Vs Measured ET")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+ggarrange(plot1et, plot4et+ rremove("ylab"), plot2et+rremove("legend"),plot3et+ rremove("ylab"), labels = c("A", "B", "C"), ncol = 2, nrow = 2)
+```
+Plot A shows the measured value of the Evapotranspiration (ET) over time. Plot B shows the true measured value of ET in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of ET over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024). 
+
+```{r}
+##FPAR
+
+# plot FPAR over time (lower values indicate a reduction in crop canopy density)
+plot1fpar <- modified_ts %>% ggplot(aes(x = date, y = FPAR)) +
+  geom_line(colour = "darkgoldenrod1") +
+  theme_bw() +
+  labs(x = "Date", y = "FPAR", title = "Measured FPAR Over Time")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+## FPAR
+# time series linear model using crop health predictors and trend() to capture linear time trend
+train_fpar <- train %>% model(TSLM(FPAR ~ swe + prcp + tmax + tmin + vp + dayl + trend()))
+
+# fit forecast with remaining test data
+forecast_test_fpar <- forecast(train_fpar, new_data = test)
+
+# compare predicted NDVI compared to entire time interval
+plot2fpar <-forecast_test_fpar %>% autoplot(modified_ts, color = "darkgoldenrod1") + theme_bw() + labs(x = "Date", y = "FPAR", title = "FPAR Over Time with prediction")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+# isolated prediction using the test data
+plot3fpar <-forecast_test_fpar %>% autoplot(color = "darkgoldenrod1") + theme_bw() + labs(x = "Date", y = "FPAR", title = "FPAR Prediction")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+## NDVI
+plot4fpar <- augment(train_fpar) %>%
+    ggplot(aes(x = date)) +
+    geom_line(aes(y = FPAR), color = "dark gray", size = 1) +
+    geom_line(aes(y = .fitted), color = "darkgoldenrod1", size = 1) +
+    theme_light() +
+    labs(x = "Date", subtitle = "Predicted Vs Measured FPAR")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+ggarrange(plot1fpar, plot4fpar+ rremove("ylab"), plot2fpar+rremove("legend"),plot3fpar+ rremove("ylab"), labels = c("A", "B", "C"), ncol = 2, nrow = 2)
+```
+Plot A shows the measured value of the Fraction of Photosynthetically Active Radiation (FPAR) over time. Plot B shows the true measured value of FPAR in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of FPAR over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024). 
+
+```{r}
+##LAI
+
+# plot LAI over time (lower values indicate diminished vegetation coverage or stunted growth)
+plot1lai <- modified_ts %>% ggplot(aes(x = date, y = LAI)) +
+  geom_line(colour = "coral3") +
+  theme_bw() +
+  labs(x = "Date", y = "LAI", title = "Leaf Area Index Over Time")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+## LAI
+# time series linear model using crop health predictors and trend() to capture linear time trend
+train_lai <- train %>% model(TSLM(LAI ~ swe + prcp + tmax + tmin + vp + dayl + trend()))
+
+# fit forecast with remaining test data
+forecast_test_lai <- forecast(train_lai, new_data = test)
+
+# compare predicted NDVI compared to entire time interval
+plot2lai <- forecast_test_lai %>% autoplot(modified_ts, color = "coral3") + theme_bw() + labs(x = "Date", y = "LAI", title = "LAI Over Time")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+# isolated prediction using the test data
+plot3lai <- forecast_test_lai %>% autoplot(color = "coral3") + theme_bw() + labs(x = "Date", y = "LAI", title = "LAI Prediction")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+## NDVI
+plot4lai <- augment(train_lai) %>%
+    ggplot(aes(x = date)) +
+    geom_line(aes(y = LAI), color = "dark gray", size = 1) +
+    geom_line(aes(y = .fitted), color = "coral3", size = 1) +
+    theme_light() +
+    labs(x = "Date", subtitle = "Time series")+
+    theme(plot.title = element_text(hjust = 0.5))
+
+
+ggarrange(plot1lai, plot4lai+ rremove("ylab"), plot2lai+rremove("legend"),plot3lai+ rremove("ylab"), labels = c("A", "B", "C"), ncol = 2, nrow = 2)
+```
+Plot A shows the measured value of the Leaf Area Index (LAI) over time. Plot B shows the true measured value of LAI in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of LAI over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024).
+
+

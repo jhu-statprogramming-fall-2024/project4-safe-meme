@@ -1,0 +1,28 @@
+---
+title: "Crop Health in Illinois"
+bibliography: references.bib
+---
+
+![@Land_and_Carbon_Lab_2024](crops_picture.avif)
+
+**Authors:**\
+- Sara Hunsberger ([shunsbe2\@jh.edu](mailto:shunsbe2@jh.edu){.email})\
+- Fernanda Montoya ([fmontoy1\@jh.edu](mailto:fmontoy1@jh.edu){.email})\
+- Meucci (Deerspring) Ilunga ([milunga2\@jh.edu](mailto:milunga2@jh.edu){.email})\
+- Meklit Yimenu ([myimenu1\@jh.edu](mailto:myimenu1@jh.edu){.email})
+
+## Research Question
+
+How have variations in key climatic variables impacted the health and productivity of croplands across Illinois over time?
+
+## Objective
+
+The objective of our project is to provide a basic analysis of how climate change has impacted regional cropland health and productivity in the Illinois over the last 25 years.
+
+## Motivation
+
+This investigation is motivated by the significant role that agricultural output plays in food security and the broader economy. Understanding climate-driven changes in cropland productivity is essential for all community stakeholders, including policymakers and farmers, to make informed decisions and adapt effectively. To achieve these objectives, our project aims to integrate three key datasets: one for mapping US croplands, one serving as a proxy for vegetation health through metrics such as the Normalized Difference Vegetation Index (NDVI), and one for climate data, including temperature and precipitation.
+
+## Layout of Website
+
+This website walks through each step of our analysis, where each page details one of three phases, data collection, exploratory analysis and our final model.

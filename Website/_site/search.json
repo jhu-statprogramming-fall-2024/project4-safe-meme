@@ -1,0 +1,142 @@
+[
+  {
+    "objectID": "dataCollection.html",
+    "href": "dataCollection.html",
+    "title": "Data Collection",
+    "section": "",
+    "text": "This page describes the data used in the analysis, including a description of the original sources of the data and a data dictionary for the data used."
+  },
+  {
+    "objectID": "exploratoryAnalysis.html",
+    "href": "exploratoryAnalysis.html",
+    "title": "Exploratory Analysis",
+    "section": "",
+    "text": "This page takes a deeper look into the data and shows how we started viewing the data with different types of plots. The exploratory analysis also includes some discussion of feature selection for the final model."
+  },
+  {
+    "objectID": "dataCollection.html#data-source-and-processing-summary",
+    "href": "dataCollection.html#data-source-and-processing-summary",
+    "title": "Data Collection",
+    "section": "Data Source and Processing Summary",
+    "text": "Data Source and Processing Summary\n\nData Acquisition: All data was obtained from Google Earth Engine using their Python API.\nSpatial Extent: The dataset covers the entire state of Illinois, with the boundary defined by the ‘TIGER/2018/States’ census dataset.\nTemporal Extent: The dataset spans from February 18th, 2000 to December 31st, 2023. It is organized into weekly averages, resulting in 1244 datasets (originally 1245, but week 71 was removed due to missing FPAR data).\nTemporal Aggregation: Daymet data, originally daily, was averaged to weekly values. MODIS composite data was downscaled.\nSpatial Resampling: MODIS ET and FPAR indices, originally at 500m resolution, were downsampled to 1km resolution using bilinear interpolation to match the resolution of other datasets.\nLand Cover Data: Land cover data is from the 2011 NASA GFSAD product. It was reclassified into three categories: non-cropland, irrigated cropland, and rainfed cropland."
+  },
+  {
+    "objectID": "dataCollection.html#notes-on-original-datasets",
+    "href": "dataCollection.html#notes-on-original-datasets",
+    "title": "Data Collection",
+    "section": "",
+    "text": "Daymet v4 (Meteorologic Data)\n\nNorth America\n1980.01.01 to 2023.12.31\n1000m x 1000m, Daily\nEEID: NASA/ORNL/DAYMET_V4\n\n\n\n\nMODIS (Terra 1km) - EVI/NDVI\n\nGlobal\n2000.02.18 to 2024.10.31\n1000m x 1000m, 16-day Composite\nEEID: MODIS/061/MOD13A2\n\n\n\n\nMODIS (Terra 500m) - ET/LE\n\nGlobal\n2000.01.01 to 2023.12.27\n500m x 500m, 8-Day composite\nEEID: MODIS/061/MOD16A2GF\n\n\n\n\nMODIS (Terra 500m) - Leaf Area and FPAR\n\nGlobal\n2000.02.18 to 2024.11.08\n500m x 500m, 8-Day composite\nEEID: MODIS/061/MOD15A2H\n\n\n\n\nGlobal Food-Support Analysis Data (GFSAD) Cropland\n\nGlobal\n2010.01.01\n1000m x 1000m, one-time (2010)\nEEID: USGS/GFSAD1000_V1"
+  },
+  {
+    "objectID": "dataCollection.html#types-of-vegetation-metrics",
+    "href": "dataCollection.html#types-of-vegetation-metrics",
+    "title": "Data Collection",
+    "section": "Types of Vegetation Metrics",
+    "text": "Types of Vegetation Metrics\n\nEvapotranspiration (ET): Measures the total water loss from soil and plants; higher ET indicates active plant growth and sufficient water availability. Over 25 years, an overall decrease in ET due to climate change could indicate reduced plant activity or increased water stress.\nFraction of Photosynthetically Active Radiation (FPAR): Represents the fraction of sunlight absorbed by vegetation for photosynthesis; higher FPAR denotes healthier, more productive crops. Over 25 years, a declining FPAR trend could indicate an overall reduction in crop canopy density.\nLeaf Area Index (LAI): Quantifies the total leaf area per unit ground area; higher LAI reflects denser foliage and robust plant growth. Over 25 years, an overall decrease in LAI over time could point to diminished vegetation cover or stunted growth.\nEnhanced Vegetation Index (EVI): An index that enhances vegetation signals by reducing atmospheric and soil background noise; higher EVI values correspond to healthier vegetation. Over 25 years, a downward trend in EVI might indicate declining vegetation vigor.\nNormalized Difference Vegetation Index (NDVI): Assesses vegetation greenness by comparing red and near-infrared reflectance; higher NDVI values signify healthier, greener vegetation. Over 25 years, a decrease in NDVI over 25 years could suggest reduced vegetation health or coverage.\nNDVI and EVI capture vegetation greenness and vigor, offering a direct assessment of plant health, whereas LAI, FPAR, and ET provide information on structural and functional aspects of vegetation. The scientific basis for preferring NDVI/EVI lies in their sensitivity to chlorophyll content and ability to detect changes in vegetation health more directly. The general hypothesis is: if the climate in 2000 was more favorable for crops than in 2024, we would expect to see higher values of ET, FPAR, LAI, EVI, and NDVI in 2000, reflecting more vigorous plant growth, denser foliage, and healthier vegetation due to optimal growing conditions."
+  },
+  {
+    "objectID": "data_dictionary.html",
+    "href": "data_dictionary.html",
+    "title": "1 Info About Dataset Format",
+    "section": "",
+    "text": "Important: Data Loading and Formats\n\n\n\nThis section provides crucial information about the available data formats and how to load the Parquet files in R. Please review this carefully before proceeding with your analysis."
+  },
+  {
+    "objectID": "data_dictionary.html#loading-parquet-data-in-r",
+    "href": "data_dictionary.html#loading-parquet-data-in-r",
+    "title": "1 Info About Dataset Format",
+    "section": "1.1 Loading Parquet Data in R",
+    "text": "1.1 Loading Parquet Data in R\nTo read the Parquet files in R, you’ll need the arrow library. Here’s how to install and use it:\n# Install the arrow library (if you haven't already)\ninstall.packages(\"arrow\")\n\n# Load the arrow library\nlibrary(arrow)\n\n# Read the Parquet file\ndf &lt;- read_parquet(\"data/transformed_data/illinois_2003.parquet\")\n\n# View the size of the dataset\nprint(dim(df))  # Prints the number of rows and columns\n\n# View the column titles\nprint(names(df))\n\n# View the data (in RStudio)\nView(df)\n\n\n\n\n\n\nNote\n\n\n\nI’ve tested this on my machine and was successfully able to load the converted Parquet files into RStudio using the arrow library."
+  },
+  {
+    "objectID": "data_dictionary.html#data-source-and-processing-summary",
+    "href": "data_dictionary.html#data-source-and-processing-summary",
+    "title": "1 Info About Dataset Format",
+    "section": "2.1 Data Source and Processing Summary",
+    "text": "2.1 Data Source and Processing Summary\n\nData Acquisition: All data was obtained from Google Earth Engine using their Python API.\nSpatial Extent: The dataset covers the entire state of Illinois, with the boundary defined by the ‘TIGER/2018/States’ census dataset.\nTemporal Extent: The dataset spans from February 18th, 2000 to December 31st, 2023. It is organized into weekly averages, resulting in 1244 datasets (originally 1245, but week 71 was removed due to missing FPAR data).\nTemporal Aggregation: Daymet data, originally daily, was averaged to weekly values. MODIS composite data was downscaled.\nSpatial Resampling: MODIS ET and FPAR indices, originally at 500m resolution, were downsampled to 1km resolution using bilinear interpolation to match the resolution of other datasets.\nLand Cover Data: Land cover data is from the 2011 NASA GFSAD product. It was reclassified into three categories: non-cropland, irrigated cropland, and rainfed cropland."
+  },
+  {
+    "objectID": "data_dictionary.html#notes-on-original-datasets",
+    "href": "data_dictionary.html#notes-on-original-datasets",
+    "title": "1 Info About Dataset Format",
+    "section": "2.2 Notes on Original Datasets",
+    "text": "2.2 Notes on Original Datasets\n\nDaymet v4 (Meteorologic Data)\n\nNorth America\n1980.01.01 to 2023.12.31\n1000m x 1000m, Daily\nEEID: NASA/ORNL/DAYMET_V4\n\n\n\n\nMODIS (Terra 1km) - EVI/NDVI\n\nGlobal\n2000.02.18 to 2024.10.31\n1000m x 1000m, 16-day Composite\nEEID: MODIS/061/MOD13A2\n\n\n\n\nMODIS (Terra 500m) - ET/LE\n\nGlobal\n2000.01.01 to 2023.12.27\n500m x 500m, 8-Day composite\nEEID: MODIS/061/MOD16A2GF\n\n\n\n\nMODIS (Terra 500m) - Leaf Area and FPAR\n\nGlobal\n2000.02.18 to 2024.11.08\n500m x 500m, 8-Day composite\nEEID: MODIS/061/MOD15A2H\n\n\n\n\nGlobal Food-Support Analysis Data (GFSAD) Cropland\n\nGlobal\n2010.01.01\n1000m x 1000m, one-time (2010)\nEEID: USGS/GFSAD1000_V1"
+  },
+  {
+    "objectID": "data_dictionary.html#types-of-vegetation-metrics",
+    "href": "data_dictionary.html#types-of-vegetation-metrics",
+    "title": "1 Info About Dataset Format",
+    "section": "2.3 Types of Vegetation Metrics",
+    "text": "2.3 Types of Vegetation Metrics\n\nEvapotranspiration (ET): Measures the total water loss from soil and plants; higher ET indicates active plant growth and sufficient water availability. Over 25 years, an overall decrease in ET due to climate change could indicate reduced plant activity or increased water stress.\nFraction of Photosynthetically Active Radiation (FPAR): Represents the fraction of sunlight absorbed by vegetation for photosynthesis; higher FPAR denotes healthier, more productive crops. Over 25 years, a declining FPAR trend could indicate an overall reduction in crop canopy density.\nLeaf Area Index (LAI): Quantifies the total leaf area per unit ground area; higher LAI reflects denser foliage and robust plant growth. Over 25 years, an overall decrease in LAI over time could point to diminished vegetation cover or stunted growth.\nEnhanced Vegetation Index (EVI): An index that enhances vegetation signals by reducing atmospheric and soil background noise; higher EVI values correspond to healthier vegetation. Over 25 years, a downward trend in EVI might indicate declining vegetation vigor.\nNormalized Difference Vegetation Index (NDVI): Assesses vegetation greenness by comparing red and near-infrared reflectance; higher NDVI values signify healthier, greener vegetation. Over 25 years, a decrease in NDVI over 25 years could suggest reduced vegetation health or coverage.\nNDVI and EVI capture vegetation greenness and vigor, offering a direct assessment of plant health, whereas LAI, FPAR, and ET provide information on structural and functional aspects of vegetation. The scientific basis for preferring NDVI/EVI lies in their sensitivity to chlorophyll content and ability to detect changes in vegetation health more directly. The general hypothesis is: if the climate in 2000 was more favorable for crops than in 2024, we would expect to see higher values of ET, FPAR, LAI, EVI, and NDVI in 2000, reflecting more vigorous plant growth, denser foliage, and healthier vegetation due to optimal growing conditions."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Climate Crops",
+    "section": "",
+    "text": "“Global Cropland Change” (2024)\nAuthors:\n- Sara Hunsberger (shunsbe2@jh.edu)\n- Fernanda Montoya (fmontoy1@jh.edu)\n- Meucci (Deerspring) Ilunga (milunga2@jh.edu)\n- Meklit Yimenu (myimenu1@jh.edu)"
+  },
+  {
+    "objectID": "index.html#research-question",
+    "href": "index.html#research-question",
+    "title": "Climate Crops",
+    "section": "Research Question",
+    "text": "Research Question\nHow have variations in key climatic variables impacted the health and productivity of croplands across Illinois over time?"
+  },
+  {
+    "objectID": "index.html#objective",
+    "href": "index.html#objective",
+    "title": "Climate Crops",
+    "section": "Objective",
+    "text": "Objective\nThe objective of our project is to provide a basic analysis of how climate change has impacted regional cropland health and productivity in the Illinois over the last 25 years."
+  },
+  {
+    "objectID": "index.html#motivation",
+    "href": "index.html#motivation",
+    "title": "Climate Crops",
+    "section": "Motivation",
+    "text": "Motivation\nThis investigation is motivated by the significant role that agricultural output plays in food security and the broader economy. Understanding climate-driven changes in cropland productivity is essential for all community stakeholders, including policymakers and farmers, to make informed decisions and adapt effectively. To achieve these objectives, our project aims to integrate three key datasets: one for mapping US croplands, one serving as a proxy for vegetation health through metrics such as the Normalized Difference Vegetation Index (NDVI), and one for climate data, including temperature and precipitation."
+  },
+  {
+    "objectID": "index.html#layout-of-website",
+    "href": "index.html#layout-of-website",
+    "title": "Climate Crops",
+    "section": "Layout of Website",
+    "text": "Layout of Website\nThis website walks through each step of our analysis, where each page details one of three phases, data collection, exploratory analysis and our final model."
+  },
+  {
+    "objectID": "exploratoryAnalysis.html#summary-plots",
+    "href": "exploratoryAnalysis.html#summary-plots",
+    "title": "Exploratory Analysis",
+    "section": "Summary plots",
+    "text": "Summary plots\nWe first explore the NDVI variable that tells us how well crops are doing and compare the health of crops over time, and across different variables.\nWe now plot the NDVI and EVI variables over time, we can see a cyclic pattern, which have one peak and valley each year, this makes sense because the seasons likely strongly affect NDVI and EVI, so we expect to see this cyclic pattern.\n\n\n\n\n\n\n\n\n\nWe next plot NDVI as a function of temperature, where it looks like we see linear correlation. This also is to be expected because crops tend to do better in the summer when the temperature is warmer.\n\n\n\n\n\n\n\n\n\nNext we plot NDVI as a function of precipitation. This plot is harder to see direct correlation between NDVI and precipitation but it gives us a sense of what the data look like.\n\n\n\n\n\n\n\n\n\nNow we plot the relationship between NDVI and EVI which seems to be correlated, which would be expected because they are different measurements for plant health.\n\n\n\n\n\n\n\n\n\nNow now make pairwise scatter plots of climate and vegetation variables of interest. These scatter plots look like they show linear correlations between the vegetation variables (NDVI and EVI) and temperature. The relationship between precipitation and the vegetation variables is less clear."
+  },
+  {
+    "objectID": "exploratoryAnalysis.html#feature-selection",
+    "href": "exploratoryAnalysis.html#feature-selection",
+    "title": "Exploratory Analysis",
+    "section": "Feature Selection",
+    "text": "Feature Selection\n\nCorrelation\nWe next made a correlation matrix between all of the climate and vegetation variables and select variables that are not highly correlated (have a correlation coefficient of less than 0.85).\n\n\n\n\n\n\n\n\n\n\n\nK-Means Clustering\nFianlly we use K-Means clustering to look at feature importance. We use K-means clustering to select important features that will be used in the final model phase of the analysis.\n\n\n\n\n\n\n\n\n\nThe final selected climate features to be used in the next step of analysis are swe, prcp, tmax, tmin, vp and dayl."
+  },
+  {
+    "objectID": "model.html",
+    "href": "model.html",
+    "title": "Final Model",
+    "section": "",
+    "text": "We decide to run a time series multiple linear regression model to predict the different plant health variables (for example the NDVI variable) of cropland in Illinois over time using the climate variables. To do this we use the library fable that allows us to run the model from a tsibble (a tibble with a time series component). We train the model on the data from 2000 to 2020 and then use the model to predict the health variable for the years 2021 to 2024. We then create the following plot to compare the actual data to the predicted confidence intervals.\nWe first split the data into training and test data. We train the model on the data from 2000 to 2020 and then test the model on data from 2020 to 2024. We then build the model for each plant health variable. Finally we forcast the performance of the model using the test data on each of the plant health variables. The plots below show the resulting predictions from our models for each of the plant health variables of interest.\nThe following plots have the true value of the variable of interest over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region.\n\n\n\n\n\n\n\n\n\nPlot A shows the measured value of the Normalized Difference Vegetation Index (NDVI) over time. Plot B shows the true measured value of NDVI in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of NDVI over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024).\n\n\n\n\n\n\n\n\n\nPlot A shows the measured value of the Enhanced Vegetation Index (EVI) over time. Plot B shows the true measured value of EVI in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of EVI over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024).\n\n\n\n\n\n\n\n\n\nPlot A shows the measured value of the Evapotranspiration (ET) over time. Plot B shows the true measured value of ET in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of ET over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024).\n\n\n\n\n\n\n\n\n\nPlot A shows the measured value of the Fraction of Photosynthetically Active Radiation (FPAR) over time. Plot B shows the true measured value of FPAR in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of FPAR over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024).\n\n\n\n\n\n\n\n\n\nPlot A shows the measured value of the Leaf Area Index (LAI) over time. Plot B shows the true measured value of LAI in gray with the predicted value for all of the data including the training data in blue. Plot C shows the true measured value of LAI over time displayed as the black line and the confidence interval of the model-predicted data onto the range of test data (from 2020 to 2024) displayed as a blue shaded region. Plot D just shows the confidence region of the predicted values for the test data (2020 to 2024)."
+  },
+  {
+    "objectID": "dataCollection.html#general-metadata-summary",
+    "href": "dataCollection.html#general-metadata-summary",
+    "title": "Data Collection",
+    "section": "General Metadata Summary",
+    "text": "General Metadata Summary\n\nGeographic Coverage: Illinois, USA\nCoordinate System: EPSG:3347 (Canada Lambert Conformal Conic)\nSpatial Resolution: 1 km x 1 km\nTemporal Coverage: February 18th, 2000 to December 31st, 2023\nTemporal Resolution: Weekly\nData Sources:\n\nDaymet v4 (daily meteorology, averaged to weekly)\nMODIS (vegetation indices, ET, FPAR, LAI; composites downscaled spatially, upscaled temporally)\nGFSAD (2011 land cover, reclassified)\n\nRendered GeoTIFF Dimensions:\n\nWidth: 431 pixels\nHeight: 660 pixels\nBands: 16"
+  },
+  {
+    "objectID": "dataCollection.html#band-explanation",
+    "href": "dataCollection.html#band-explanation",
+    "title": "Data Collection",
+    "section": "Band Explanation",
+    "text": "Band Explanation\n\n\n\n\n\n\n\n\n\n\nBand Name\nDescription\nUnits\nData Type\nNoData Value\n\n\n\n\ncrop\nLand cover type (1: non-cropland, 2: irrigated cropland, 3: rainfed cropland)\nCategory\nfloat32\nNone\n\n\ndayl\nDaylength\nseconds\nfloat32\nNone\n\n\nprcp\nPrecipitation\nmm/day\nfloat32\nNone\n\n\nsrad\nDownward shortwave radiation at the surface\nW/m^2\nfloat32\nNone\n\n\nswe\nSnow water equivalent\nkg/m^2\nfloat32\nNone\n\n\ntmax\nDaily maximum 2-meter air temperature\ndegrees C\nfloat32\nNone\n\n\ntmin\nDaily minimum 2-meter air temperature\ndegrees C\nfloat32\nNone\n\n\nvp\nWater vapor pressure\nPa\nfloat32\nNone\n\n\nEVI\nEnhanced Vegetation Index\nunitless\nfloat32\nNone\n\n\nNDVI\nNormalized Difference Vegetation Index\nunitless\nfloat32\nNone\n\n\nET\nEvapotranspiration\nmm/day\nfloat32\nNone\n\n\nLE\nLatent heat flux\nW/m^2\nfloat32\nNone\n\n\nPET\nPotential evapotranspiration\nmm/day\nfloat32\nNone\n\n\nPLE\nPotential latent heat flux\nW/m^2\nfloat32\nNone\n\n\nFPAR\nFraction of Photosynthetically Active Radiation\nunitless\nfloat32\nNone\n\n\nLAI\nLeaf Area Index\nm2/m2\nfloat32\nNone"
+  }
+]

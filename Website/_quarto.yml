@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "Climate Crops"
+  title: "Crop Health in Illinois"
   navbar:
     left:
       - href: index.qmd

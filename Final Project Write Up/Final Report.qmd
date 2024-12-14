@@ -1,8 +1,45 @@
 ---
-title: "Final Project Write Up"
+title: "Geospatial Monitoring of Cropland Health for a Changing Climate"
+format: html
+editor: visual
 echo: false
 warning: false
 message: false
 ---
+**Project Authors (Team SaFe MeMe):**
+
+- Sara Hunsberger (<shunsbe2@jh.edu>)\
+- Fernanda Montoya (<fmontoy1@jh.edu>)\
+- Meucci (Deerspring) Ilunga (<milunga2@jh.edu>)\
+- Meklit Yimenu (<myimenu1@jh.edu>)
+
+**Key Research Question:** How have variations in key climatic variables—such as temperature, precipitation, humidity, solar radiation, and cloud cover—impacted the health and productivity of croplands across different regions of the United States over time? And what potential does this sort of geospatial statistical modeling show for identifying regions with future risks for poor crop performance?
+
+The objective of our project is to provide a basic analysis of how climate change has impacted regional cropland health and productivity in the United States over the last 25 years. This investigation is motivated by the significant role that agricultural output plays in food security and the broader economy. Understanding climate-driven changes in cropland productivity is essential for all community stakeholders, including policymakers and farmers, to make informed decisions and adapt effectively. To achieve these objectives, our project aims to integrate three key datasets: one for mapping US croplands, one serving as a proxy for vegetation health through metrics such as the Normalized Difference Vegetation Index (NDVI), and one for climate data, including temperature and precipitation.
+
+**Original Goals and Project Accomplishments**
+
+**Existing Work**
+
+There has been research done on the impact of climate change on vegetation in the United States. For instance: the article "Impacts of global change on peak vegetation growth and its timing in terrestrial ecosystems of the continental US" by Ying Liu et al. describes an analysis using similar factors that we will be looking at. These factors include how the Normalized Difference Vegetation Index (NDVI) changes with differences in temperature, precipitation and cloud cover. However, this research was done only on *all* vegetation in the United States, whereas our group is more interested in limitng our analsysi scope to the climate impact on croplands specifically. The Liu et al. study found that precipitation had the largest impact on NDVI, which tells us that geospatial precipitation data maybe be a prime data metric to look at for our analysis. [@LIU2021103657]
+
+In terms of looking at climate change and cropland specifically, the paper "Climate change and adaptation in agriculture: Evidence from US cropping patterns" by Xiaomeng Cui talks about climate change’s effect on the types of crops being planted; for example in the US, soybean and corn production has increased, and this paper says that climate change has contributed to that increase. This means that in our analysis we can also possibly examine shifts in crops along with changes to their NDVI and other metrics of crop health. [@CUI2020102306]
+
+**Overview of Technical Challenges**
+
+**Programming Paradigm Integration**
+
+**Data Product**
+
+**Project Links**
+
+Website: https://sarahunsberger1.github.io/Project4_website/ ([source](https://sarahunsberger1.github.io/Project4_website/ ))
+
+Github Repository: https://github.com/jhu-statprogramming-fall-2024/project4-safe-meme ([source](https://github.com/jhu-statprogramming-fall-2024/project4-safe-meme))
+
+
+
+
+
 
 

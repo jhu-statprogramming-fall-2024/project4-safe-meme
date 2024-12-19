@@ -51,3 +51,13 @@ Data acquisition will involve retrieving excerpts via API calls from Earth Engin
 *   **Final Project Write-up and Group Evaluation:** December 19th, 2024
 
 This repository will be updated regularly with our progress throughout the project.
+
+**Description of layout of the repository**
+Here is a description of what is inside of this repository so that all of the code can be easily identified and found. 
+Folders:
+*Proposal:Tghis folder contains the original project proposal.
+*data: This folder contains the scripts used to collect the data from Earth engine and a data dictionary for our final data. It also includes example images from our data. 
+*data_prep: This folder contains all of the code that was used for the data cleaning, including imputation and the exploratory analysis step. This also includes the k-means clustering part of our project. 
+* Final Model: This folder includes the code to run the final model and make all plots that use the final model.
+*Website: This folder contains all of the necessary files to create the website. 
+*Final Project Write Up: This folder contains the final write up to be submitted. 
